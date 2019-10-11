@@ -12,10 +12,10 @@ library(skimr)
 Load data, available in SPSS format (.por extension)
 ```{r}
 # Female data
-X03212_0001_Data <- read_por("Downloads/ICPSR_03212 3/DS0001/03212-0001-Data.por")
+X03212_0001_Data <- read_por("../data/ICPSR_03212 3/DS0001/03212-0001-Data.por")
 
 # Male data
-X03212_0002_Data <- read_por("Downloads/ICPSR_03212 5/DS0002/03212-0002-Data.por")
+X03212_0002_Data <- read_por("../data/ICPSR_03212 5/DS0002/03212-0002-Data.por")
 
 ```
 
