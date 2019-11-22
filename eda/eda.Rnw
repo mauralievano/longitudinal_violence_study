@@ -16,7 +16,7 @@ source("../src/utility.R")
 
 <<load-data>>=
 # Female data
-female_data <- read_por("../data/DS0001/03212-0001-Data.por")
+female_data <- read_por("../data/03212-0001-Data.por")
 female_variable <- colnames(female_data)
 
 length(grep(pattern = "^90-", female_data$CODENUM) )
@@ -230,30 +230,25 @@ female_final <- female_data %>%
   mutate(psywell3 = PSYWELL3) %>%
   mutate(psywell4 = PSYWELL4) %>%
   mutate(psywell5 = PSYWELL5) %>%
-  # medical visit as an approx for physical health L_5
-  # note YR 1-2 info is missing
-  mutate(medvis3 = (MEDVIS3 != 1)) %>% # 1 for medvis, 0 for none
-  mutate(medvis4 = (MEDVIS4 != 1)) %>%
-  mutate(medvis5 = (MEDVIS5 != 1)) %>%
-  # number of women the respondent know who had been sexually victimized L_6
+  # number of women the respondent know who had been sexually victimized L_5
   # note YR 5 info is missing
   mutate(victfrnd1 = (VICTFRND != 1)) %>% # 1 for at least one, 0 for none
   mutate(victfrnd2 = (VCTFRND2 != 1)) %>%
   mutate(victfrnd3 = (VCTFRND3 != 1)) %>%
   mutate(victfrnd4 = (VCTFRND4 != 1)) %>%
-  # drug use of the respondent L_7
+  # drug use of the respondent L_6
   mutate(drug1 = DRUG1) %>% # 1 for drug use, 0 for none
   mutate(drug2 = DRUG2) %>%
   mutate(drug3 = DRUG3) %>%
   mutate(drug4 = DRUG4) %>%
   mutate(drug5 = DRUG5) %>%
-  # alcohol use of the respondent L_8
+  # alcohol use of the respondent L_7
   mutate(alcohol1 = (DRNKFREQ != 1)) %>% # 1 for alcohol use, 0 for none
   mutate(alcohol2 = (DRNKFRQ2 != 1)) %>%
   mutate(alcohol3 = (DRNKFRQ3 != 1)) %>%
   mutate(alcohol4 = (DRNKFRQ4 != 1)) %>%
   mutate(alcohol5 = (DRNKFRQ5 != 1)) %>%
-  # dating frequency during the past year L_9
+  # dating frequency during the past year L_8
   # no info at yr 1 since we dont care about the year before yr 1
   mutate(dating2 = DATING2_comb) %>% # 1 if occa/freq date, 0 if (almost) never 
   mutate(dating3 = (DATEBEH3 == 3 | DATEBEH3 == 4)) %>%
@@ -267,14 +262,39 @@ SCM_nodes <- c("victim1", "victim2", "victim3", "victim4", "suicide1",
                "relation2", "relation3", "relation4", "relation5", "religion1", 
                "religion2", "religion3", "religion4", "religion5", "psystress1", 
                "psystress2", "psystress3", "psystress4", "psystress5", "psywell1",
-               "psywell2", "psywell3", "psywell4", "psywell5", "medvis3", 
-               "medvis4", "medvis5", "victfrnd1", "victfrnd2", "victfrnd3", 
-               "victfrnd4", "drug1", "drug2", "drug3", "drug4", "drug5", 
-               "alcohol1", "alcohol2", "alcohol3", "alcohol4", "alcohol5", "dating2",
-               "dating3", "dating4", "dating5")
+               "psywell2", "psywell3", "psywell4", "psywell5", "victfrnd1", 
+               "victfrnd2", "victfrnd3", "victfrnd4", "drug1", "drug2", "drug3", 
+               "drug4", "drug5", "alcohol1", "alcohol2", "alcohol3", "alcohol4", 
+               "alcohol5", "dating2", "dating3", "dating4", "dating5")
 female_SCM <- female_final[, c("CODENUM", "cohort", SCM_nodes)]
 write.table(female_SCM, "../data/female_SCM.csv")
 save(female_SCM, file = "../data/female_SCM.RData")
+@
+
+<<>>=
+load("../data/female_SCM.RData")
+
+vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
+                  (female_SCM$victim3 == 1) & (female_SCM$victim4 == 1), na.rm = T)
+vic_111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
+                 (female_SCM$victim3 == 1), na.rm = T)
+vic_11 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1), na.rm = T)
+vic_1 <- sum(female_SCM$victim1 == 1, na.rm = T)
+vic_1111 / nrow(female_SCM)
+vic_1111/vic_111
+vic_111/vic_11
+vic_11/vic_1
+
+vic_0000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
+                  (female_SCM$victim3 == 0) & (female_SCM$victim4 == 0), na.rm = T)
+vic_000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
+                  (female_SCM$victim3 == 0), na.rm = T)
+vic_00 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0), na.rm = T)
+vic_0 <- sum(female_SCM$victim1 == 0, na.rm = T)
+vic_0000 / nrow(female_SCM)
+vic_0000/vic_000
+vic_000/vic_00
+vic_00/vic_0
 @
 
 \end{document}
