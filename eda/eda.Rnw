@@ -245,11 +245,11 @@ female_final <- female_data %>%
   mutate(psywell4 = PSYWELL4) %>%
   mutate(psywell5 = PSYWELL5) %>%
   # number of women the respondent know who had been sexually victimized L_5
-  # note YR 5 info is missing
   mutate(victfrnd1 = (VICTFRND != 1)) %>% # 1 for at least one, 0 for none
   mutate(victfrnd2 = (VCTFRND2 != 1)) %>%
   mutate(victfrnd3 = (VCTFRND3 != 1)) %>%
   mutate(victfrnd4 = (VCTFRND4 != 1)) %>%
+  mutate(victfrnd5 = (NUMVICT5 != 1)) %>%
   # drug use of the respondent L_6
   mutate(drug1 = DRUG1) %>% # 1 for drug use, 0 for none
   mutate(drug2 = DRUG2) %>%
@@ -278,8 +278,8 @@ SCM_nodes <- c("victim1", "victim2", "victim3", "victim4", "suicide1",
                "psystress1", "psystress2", "psystress3", "psystress4", 
                "psystress5", "psywell1", "psywell2", "psywell3", "psywell4", 
                "psywell5", "victfrnd1", "victfrnd2", "victfrnd3", "victfrnd4", 
-               "drug1", "drug2", "drug3", "drug4", "drug5", "alcohol1", 
-               "alcohol2", "alcohol3", "alcohol4", "alcohol5")
+               "victfrnd5", "drug1", "drug2", "drug3", "drug4", "drug5", 
+               "alcohol1", "alcohol2", "alcohol3", "alcohol4", "alcohol5")
 female_SCM <- female_final[, c("CODENUM", "cohort", SCM_nodes)]
 write.table(female_SCM, "../data/female_SCM.csv")
 save(female_SCM, file = "../data/female_SCM.RData")
@@ -293,9 +293,46 @@ load("../data/female_SCM.RData")
 i.	Analysis sample
 1.	# of observations (individuals) meeting inclusion criteria, reasons for exclusion
 2.	Consider a flow diagram
+<<>>=
+psywell1_high <- quantile(as.numeric(female_SCM$psywell1), 0.975, na.rm = T)
+psywell2_high <- quantile(as.numeric(female_SCM$psywell2), 0.975, na.rm = T)
+psywell3_high <- quantile(as.numeric(female_SCM$psywell3), 0.975, na.rm = T)
+psywell4_high <- quantile(as.numeric(female_SCM$psywell4), 0.975, na.rm = T)
+psywell5_high <- quantile(as.numeric(female_SCM$psywell5), 0.975, na.rm = T)
+psywell1_low <- quantile(as.numeric(female_SCM$psywell1), 0.025, na.rm = T)
+psywell2_low <- quantile(as.numeric(female_SCM$psywell2), 0.025, na.rm = T)
+psywell3_low <- quantile(as.numeric(female_SCM$psywell3), 0.025, na.rm = T)
+psywell4_low <- quantile(as.numeric(female_SCM$psywell4), 0.025, na.rm = T)
+psywell5_low <- quantile(as.numeric(female_SCM$psywell5), 0.025, na.rm = T)
+psywell_outlier1 <- which(female_SCM$psywell1 > psywell1_high & female_SCM$psywell2 > psywell2_high & 
+                          female_SCM$psywell3 > psywell3_high & female_SCM$psywell4 > psywell3_high &
+                          female_SCM$psywell5 > psywell5_high)
+psywell_outlier2 <- which(female_SCM$psywell1 < psywell1_low & female_SCM$psywell2 < psywell2_low & 
+                          female_SCM$psywell3 < psywell3_low & female_SCM$psywell4 < psywell3_low &
+                          female_SCM$psywell5 < psywell5_low)
 
+psystress1_high <- quantile(as.numeric(female_SCM$psystress1), 0.975, na.rm = T)
+psystress2_high <- quantile(as.numeric(female_SCM$psystress2), 0.975, na.rm = T)
+psystress3_high <- quantile(as.numeric(female_SCM$psystress3), 0.975, na.rm = T)
+psystress4_high <- quantile(as.numeric(female_SCM$psystress4), 0.975, na.rm = T)
+psystress5_high <- quantile(as.numeric(female_SCM$psystress5), 0.975, na.rm = T)
+psystress1_low <- quantile(as.numeric(female_SCM$psystress1), 0.025, na.rm = T)
+psystress2_low <- quantile(as.numeric(female_SCM$psystress2), 0.025, na.rm = T)
+psystress3_low <- quantile(as.numeric(female_SCM$psystress3), 0.025, na.rm = T)
+psystress4_low <- quantile(as.numeric(female_SCM$psystress4), 0.025, na.rm = T)
+psystress5_low <- quantile(as.numeric(female_SCM$psystress5), 0.025, na.rm = T)
+psystress_outlier1 <- which(female_SCM$psystress1 > psystress1_high & female_SCM$psystress2 > psystress2_high & 
+                female_SCM$psystress3 > psystress3_high & female_SCM$psystress4 > psystress3_high &
+                female_SCM$psystress5 > psystress5_high)
+psystress_outlier2 <- which(female_SCM$psystress1 <psystress1_low & female_SCM$psystress2 < psystress2_low & 
+                female_SCM$psystress3 < psystress3_low & female_SCM$psystress4 < psystress3_low &
+                female_SCM$psystress5 < psystress5_low)
+
+outliers <- c(psywell_outlier1, psywell_outlier2, psystress_outlier1, psystress_outlier2)
+female_outliers <- female_SCM[-outliers, ]
+@
 ii.	Descriptive
-1.	# of individuals following each regime of interest
+1.	number of individuals following each regime of interest
 
 <<>>=
 vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
@@ -303,6 +340,13 @@ vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) &
                 na.rm = T)
 vic_0000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
                   (female_SCM$victim3 == 0) & (female_SCM$victim4 == 0), 
+                na.rm = T)
+
+vic_1111_o <- sum((female_outliers$victim1 == 1) & (female_outliers$victim2 == 1) & 
+                  (female_outliers$victim3 == 1) & (female_outliers$victim4 == 1), 
+                na.rm = T)
+vic_0000_o <- sum((female_outliers$victim1 == 0) & (female_outliers$victim2 == 0) & 
+                  (female_outliers$victim3 == 0) & (female_outliers$victim4 == 0), 
                 na.rm = T)
 @
 
@@ -316,6 +360,9 @@ table_suicidal <- rbind(table(female_SCM$suicide1, useNA = "always"),
                         table(female_SCM$suicide5, useNA = "always"))
 rownames(table_suicidal) <- paste0("yr", 1:5)
 table(female_SCM$Y, useNA = "always")
+
+table(female_outliers$Y, useNA = "always")
+
 @
 
 3.	“Table 1” descriptive (univariate) sample characteristics
@@ -329,49 +376,6 @@ table(female_SCM$forced_att, female_SCM$cohort, useNA = "always")[, c(1, 2)]
 table(female_SCM$sex_bef14, female_SCM$cohort, useNA = "always")[, c(1, 2)]
 @
 
-\begin{table}
-\centering
-\begin{tabular}{@{}lcc@{}}
-\toprule
-     & \textbf{Cohort 90} & \textbf{Cohort 91}\\
-\midrule
- \textbf{Ethnicity}\\
- White & 572 & 570 \\
- Black & 193 & 150 \\
- Other & 29 & 24\\
- NA & 36 & 6\\
-\midrule
- \textbf{Sexual Orientation}\\
- Heterosexual & 733 & 689 \\
- LGBTQ & 20 & 29 \\
- NA & 77 & 32\\
-\midrule
- \textbf{Consent Sex (14-present)}\\
- Never & 264 & 234\\
- At least once & 560 & 505\\
- NA & 6 & 11\\
-\midrule 
- \textbf{Forced Sex (14-present)}\\
- Never & 449 & 389\\
- At least once & 377 & 355 \\
- NA & 4 & 6\\
-\midrule
- \textbf{Forced Sex Attempt (14-present)}\\
- Never & 655 & 601 \\
- At least once & 171 & 144 \\
- NA & 4 & 5\\
-\midrule
- \textbf{Sexual Experience (0-14)}\\
- Never & 458 & 440 \\
- At least once & 338 & 283 \\
- NA & 34 & 27\\
-\bottomrule
-\end{tabular}
-\caption{descriptive (univariate) sample characteristics of baseline covariates. 
-(14-present): from age 14 to present; (0-14): before age 14}
-\end{table}
- 
- 
 
 \end{table}
 
@@ -410,22 +414,20 @@ table_alcohol <- rbind(table(female_SCM$alcohol1, useNA = "always"),
                        table(female_SCM$alcohol4, useNA = "always"),
                        table(female_SCM$alcohol5, useNA = "always"))
 rownames(table_alcohol) <- paste0("yr", 1:5)
+
+table_suicide <- rbind(table(female_SCM$suicide1, useNA = "always"),
+                       table(female_SCM$suicide2, useNA = "always"),
+                       table(female_SCM$suicide3, useNA = "always"),
+                       table(female_SCM$suicide4, useNA = "always"),
+                       table(female_SCM$suicide5, useNA = "always"))
+rownames(table_suicide) <- paste0("yr", 1:5)
+
+table_victim <- rbind(table(female_SCM$victim1, useNA = "always"),
+                       table(female_SCM$victim2, useNA = "always"),
+                       table(female_SCM$victim3, useNA = "always"),
+                       table(female_SCM$victim4, useNA = "always"))
+rownames(table_victim) <- paste0("yr", 1:4)
 @
-
-\begin{table}
-\centering
-\begin{tabular}{@{}lcccc@{}}
-\toprule
- & \textbf{Before School Year} & \textbf{School Year 1} & \textbf{School Year 2} & \textbf{School Year}
-\end{table}
-
-a.	 possibly stratified by outcome (if binary)
-
-iii.	Estimators
-1.	Ultimately, point estimates and confidence intervals for each estimator you applied
-2.	Good practice to also report unadjusted associations
-3.	Briefly interpret estimate values – tie back to original scientific/causal question
-
 
 
 <<>>=
