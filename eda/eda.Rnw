@@ -188,12 +188,15 @@ female_final <- female_data %>%
   mutate(victim2 = (COOCCUR2 != 1)) %>%
   mutate(victim3 = (COOCCUR3 != 1)) %>%
   mutate(victim4 = (COOCCUR4 != 1)) %>%
-  # add outcome Y
+  # add suicidal L10:
   mutate(suicide1 = (SUICIDE != 1)) %>% # 1 if suicidal, 0 if not
   mutate(suicide2 = (SUICIDE2 != 1)) %>%
   mutate(suicide3 = (SUICIDE3 != 1)) %>%
   mutate(suicide4 = (SUICIDE4 != 1)) %>% 
   mutate(suicide5 = (SUICIDE5 != 1)) %>%
+  # add outcome Y
+  mutate(Y = as.numeric(suicide1) + as.numeric(suicide2) + as.numeric(suicide3) +
+           as.numeric(suicide4) + as.numeric(suicide5)) %>%
   # race W_1: 
   mutate(race = RACE) %>%
   # sexual orientation W_2: 
@@ -257,23 +260,54 @@ female_final <- female_data %>%
 
 # export CSV file
 SCM_nodes <- c("victim1", "victim2", "victim3", "victim4", "suicide1", 
-               "suicide2", "suicide3", "suicide4", "suicide5", "race", "sxorient",
-               "consent", "forced", "forced_att", "sex_bef14", "relation1", 
-               "relation2", "relation3", "relation4", "relation5", "religion1", 
-               "religion2", "religion3", "religion4", "religion5", "psystress1", 
-               "psystress2", "psystress3", "psystress4", "psystress5", "psywell1",
-               "psywell2", "psywell3", "psywell4", "psywell5", "victfrnd1", 
-               "victfrnd2", "victfrnd3", "victfrnd4", "drug1", "drug2", "drug3", 
-               "drug4", "drug5", "alcohol1", "alcohol2", "alcohol3", "alcohol4", 
-               "alcohol5", "dating2", "dating3", "dating4", "dating5")
+               "suicide2", "suicide3", "suicide4", "suicide5", "Y", "race", 
+               "sxorient", "consent", "forced", "forced_att", "sex_bef14", 
+               "relation1", "relation2", "relation3", "relation4", "relation5", 
+               "religion1", "religion2", "religion3", "religion4", "religion5", 
+               "psystress1", "psystress2", "psystress3", "psystress4", 
+               "psystress5", "psywell1", "psywell2", "psywell3", "psywell4", 
+               "psywell5", "victfrnd1", "victfrnd2", "victfrnd3", "victfrnd4", 
+               "drug1", "drug2", "drug3", "drug4", "drug5", "alcohol1", 
+               "alcohol2", "alcohol3", "alcohol4", "alcohol5", "dating2", 
+               "dating3", "dating4", "dating5")
 female_SCM <- female_final[, c("CODENUM", "cohort", SCM_nodes)]
 write.table(female_SCM, "../data/female_SCM.csv")
 save(female_SCM, file = "../data/female_SCM.RData")
 @
 
-<<>>=
+<<load-data>>=
 load("../data/female_SCM.RData")
+@
 
+
+i.	Analysis sample
+1.	# of observations (individuals) meeting inclusion criteria, reasons for exclusion
+2.	Consider a flow diagram
+
+ii.	Descriptive
+1.	# of individuals following each regime of interest
+2.	basic descriptive stats for outcome (eg if binary, how many events)
+3.	“Table 1” descriptive (univariate) sample characteristics
+a.	 possibly stratified by outcome (if binary)
+
+<<>>=
+vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
+                  (female_SCM$victim3 == 1) & (female_SCM$victim4 == 1), 
+                na.rm = T)
+vic_0000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
+                  (female_SCM$victim3 == 0) & (female_SCM$victim4 == 0), 
+                na.rm = T)
+
+@
+
+iii.	Estimators
+1.	Ultimately, point estimates and confidence intervals for each estimator you applied
+2.	Good practice to also report unadjusted associations
+3.	Briefly interpret estimate values – tie back to original scientific/causal question
+
+
+
+<<>>=
 vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
                   (female_SCM$victim3 == 1) & (female_SCM$victim4 == 1), na.rm = T)
 vic_111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
