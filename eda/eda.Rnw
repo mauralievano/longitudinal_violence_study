@@ -129,6 +129,16 @@ ggsave(file = "../figure/dist-confounder.png", p_confounder)
 female_data[grep(pattern = "^90-", female_data$CODENUM), "COHORT"] <- 90
 female_data[grep(pattern = "^91-", female_data$CODENUM), "COHORT"] <- 91
 
+# relation status
+relation2_90 <- which((female_data$COHORT == 90) & (female_data$MARSTAT2 != 1))
+relation2_91 <- which((female_data$COHORT == 91) & (female_data$RELSTAT2 != 1))
+no_relation2_90 <- which((female_data$COHORT == 90) & (female_data$MARSTAT2 == 1))
+no_relation2_91 <- which((female_data$COHORT == 91) & (female_data$RELSTAT2 == 1))
+RELATION2 <- rep(NA, nrow(female_data))
+RELATION2[c(relation2_90, relation2_91)] <- 1
+RELATION2[c(no_relation2_90, no_relation2_91)] <- 0
+female_data <- cbind(female_data, RELATION2)
+
 # sexual experience from age 14 to the present
   # intercourse occurred 
 no_forced_sex <- female_data$SEXACTS == 1 & female_data$FORCESI == 1 & 
@@ -167,15 +177,16 @@ DRUG4 <- female_data$MJFREQ4 != 1 | female_data$OTHERRX4 != 1
 DRUG5 <- female_data$MJFREQ5 != 1 | female_data$OTHERRX5 != 1
 female_data <- cbind(female_data, DRUG1, DRUG2, DRUG3, DRUG4, DRUG5)
 
-# dating frequency during the past year 
-dating90 <- which((female_data$DATING2 != 1) & (female_data$COHORT == 90)) # 1 if dating at least once and in 90 cohort
-no_dating90 <- which((female_data$DATING2 == 1) & (female_data$COHORT == 90)) 
-dating91 <- which((female_data$DATEBEH2 == 3) | (female_data$DATEBEH2 == 4) & (female_data$COHORT == 91)) 
-no_dating91 <- which((female_data$DATEBEH2 == 1) | (female_data$DATEBEH2 == 2) & (female_data$COHORT == 91)) 
-DATING2_comb <- rep(NA, nrow(female_data))
-DATING2_comb[c(dating90, dating91)] <- 1
-DATING2_comb[c(no_dating90, no_dating91)] <- 0
-female_data <- cbind(female_data, DATING2_comb)
+# # dating frequency during the past year 
+# dating90 <- which((female_data$DATING2 != 1) & (female_data$COHORT == 90)) # 1 if dating at least once and in 90 cohort
+# no_dating90 <- which((female_data$DATING2 == 1) & (female_data$COHORT == 90)) 
+# dating91 <- which((female_data$DATEBEH2 == 3) | (female_data$DATEBEH2 == 4) & 
+#                     (female_data$COHORT == 91)) 
+# no_dating91 <- which((female_data$DATEBEH2 == 1) | (female_data$DATEBEH2 == 2) & (female_data$COHORT == 91)) 
+# DATING2_comb <- rep(NA, nrow(female_data))
+# DATING2_comb[c(dating90, dating91)] <- 1
+# DATING2_comb[c(no_dating90, no_dating91)] <- 0
+# female_data <- cbind(female_data, DATING2_comb)
 
 @
 
@@ -200,7 +211,7 @@ female_final <- female_data %>%
   # race W_1: 
   mutate(race = RACE) %>%
   # sexual orientation W_2: 
-  mutate(sxorient = SXORIENT) %>%
+  mutate(sxorient = (SXORIENT != 1)) %>% # 1 if bisexual/homosexual/not sure, 0 if heterosexual
   # consent sex (age 14 - present) W:_3 
   mutate(consent = CONSENT) %>%
   # forced sex (age 14 - present) W_4:
@@ -210,7 +221,7 @@ female_final <- female_data %>%
   mutate(sex_bef14 = SEX_BEF14) %>%
   # relation status L_1
   mutate(relation1 = (MARSTAT != 1)) %>% # 1 for in-relation or separated, 0 for single
-  mutate(relation2 = ((MARSTAT2 != 1) | (RELSTAT2 != 1))) %>%
+  mutate(relation2 = RELATION2) %>%
   mutate(relation3 = (RELSTAT3 != 1)) %>%
   mutate(relation4 = (RELSTAT4 != 1)) %>%
   mutate(relation5 = (RELSTAT5 != 1)) %>%
@@ -250,13 +261,13 @@ female_final <- female_data %>%
   mutate(alcohol2 = (DRNKFRQ2 != 1)) %>%
   mutate(alcohol3 = (DRNKFRQ3 != 1)) %>%
   mutate(alcohol4 = (DRNKFRQ4 != 1)) %>%
-  mutate(alcohol5 = (DRNKFRQ5 != 1)) %>%
-  # dating frequency during the past year L_8
-  # no info at yr 1 since we dont care about the year before yr 1
-  mutate(dating2 = DATING2_comb) %>% # 1 if occa/freq date, 0 if (almost) never 
-  mutate(dating3 = (DATEBEH3 == 3 | DATEBEH3 == 4)) %>%
-  mutate(dating4 = (DATEBEH4 == 3 | DATEBEH4 == 4)) %>%
-  mutate(dating5 = (DATEBEH5 == 3 | DATEBEH5 == 4))
+  mutate(alcohol5 = (DRNKFRQ5 != 1))
+  # # dating frequency during the past year L_8
+  # # no info at yr 1 since we dont care about the year before yr 1
+  # mutate(dating2 = DATING2_comb) %>% # 1 if occa/freq date, 0 if (almost) never 
+  # mutate(dating3 = (DATEBEH3 == 3 | DATEBEH3 == 4)) %>%
+  # mutate(dating4 = (DATEBEH4 == 3 | DATEBEH4 == 4)) %>%
+  # mutate(dating5 = (DATEBEH5 == 3 | DATEBEH5 == 4))
 
 # export CSV file
 SCM_nodes <- c("victim1", "victim2", "victim3", "victim4", "suicide1", 
@@ -268,8 +279,7 @@ SCM_nodes <- c("victim1", "victim2", "victim3", "victim4", "suicide1",
                "psystress5", "psywell1", "psywell2", "psywell3", "psywell4", 
                "psywell5", "victfrnd1", "victfrnd2", "victfrnd3", "victfrnd4", 
                "drug1", "drug2", "drug3", "drug4", "drug5", "alcohol1", 
-               "alcohol2", "alcohol3", "alcohol4", "alcohol5", "dating2", 
-               "dating3", "dating4", "dating5")
+               "alcohol2", "alcohol3", "alcohol4", "alcohol5")
 female_SCM <- female_final[, c("CODENUM", "cohort", SCM_nodes)]
 write.table(female_SCM, "../data/female_SCM.csv")
 save(female_SCM, file = "../data/female_SCM.RData")
@@ -286,9 +296,6 @@ i.	Analysis sample
 
 ii.	Descriptive
 1.	# of individuals following each regime of interest
-2.	basic descriptive stats for outcome (eg if binary, how many events)
-3.	“Table 1” descriptive (univariate) sample characteristics
-a.	 possibly stratified by outcome (if binary)
 
 <<>>=
 vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
@@ -297,8 +304,122 @@ vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) &
 vic_0000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
                   (female_SCM$victim3 == 0) & (female_SCM$victim4 == 0), 
                 na.rm = T)
-
 @
+
+2.	basic descriptive stats for outcome (eg if binary, how many events)
+
+<<>>=
+table_suicidal <- rbind(table(female_SCM$suicide1, useNA = "always"),
+                        table(female_SCM$suicide2, useNA = "always"),
+                        table(female_SCM$suicide3, useNA = "always"),
+                        table(female_SCM$suicide4, useNA = "always"),
+                        table(female_SCM$suicide5, useNA = "always"))
+rownames(table_suicidal) <- paste0("yr", 1:5)
+table(female_SCM$Y, useNA = "always")
+@
+
+3.	“Table 1” descriptive (univariate) sample characteristics
+
+<<>>=
+table(female_SCM$race, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$sxorient, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$consent, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$forced, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$forced_att, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$sex_bef14, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+@
+
+\begin{table}
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+     & \textbf{Cohort 90} & \textbf{Cohort 91}\\
+\midrule
+ \textbf{Ethnicity}\\
+ White & 572 & 570 \\
+ Black & 193 & 150 \\
+ Other & 29 & 24\\
+ NA & 36 & 6\\
+\midrule
+ \textbf{Sexual Orientation}\\
+ Heterosexual & 733 & 689 \\
+ LGBTQ & 20 & 29 \\
+ NA & 77 & 32\\
+\midrule
+ \textbf{Consent Sex (14-present)}\\
+ Never & 264 & 234\\
+ At least once & 560 & 505\\
+ NA & 6 & 11\\
+\midrule 
+ \textbf{Forced Sex (14-present)}\\
+ Never & 449 & 389\\
+ At least once & 377 & 355 \\
+ NA & 4 & 6\\
+\midrule
+ \textbf{Forced Sex Attempt (14-present)}\\
+ Never & 655 & 601 \\
+ At least once & 171 & 144 \\
+ NA & 4 & 5\\
+\midrule
+ \textbf{Sexual Experience (0-14)}\\
+ Never & 458 & 440 \\
+ At least once & 338 & 283 \\
+ NA & 34 & 27\\
+\bottomrule
+\end{tabular}
+\caption{descriptive (univariate) sample characteristics of baseline covariates. 
+(14-present): from age 14 to present; (0-14): before age 14}
+\end{table}
+ 
+ 
+
+\end{table}
+
+<<>>=
+table_relation <- rbind(table(female_SCM$relation1, useNA = "always"),
+                        table(female_SCM$relation2, useNA = "always"),
+                        table(female_SCM$relation3, useNA = "always"),
+                        table(female_SCM$relation4, useNA = "always"),
+                        table(female_SCM$relation5, useNA = "always"))
+rownames(table_relation) <- paste0("yr", 1:5)
+
+table_religion <- rbind(table(female_SCM$religion1, useNA = "always"),
+                        table(female_SCM$religion2, useNA = "always"),
+                        table(female_SCM$religion3, useNA = "always"),
+                        table(female_SCM$religion4, useNA = "always"),
+                        table(female_SCM$religion5, useNA = "always"))
+rownames(table_religion) <- paste0("yr", 1:5)
+
+table_victfrnd <- rbind(table(female_SCM$victfrnd1, useNA = "always"),
+                        table(female_SCM$victfrnd2, useNA = "always"),
+                        table(female_SCM$victfrnd3, useNA = "always"),
+                        table(female_SCM$victfrnd4, useNA = "always"),
+                        table(female_SCM$victfrnd5, useNA = "always"))
+rownames(table_victfrnd) <- paste0("yr", 1:5)
+
+table_drug <- rbind(table(female_SCM$drug1, useNA = "always"),
+                    table(female_SCM$drug2, useNA = "always"),
+                    table(female_SCM$drug3, useNA = "always"),
+                    table(female_SCM$drug4, useNA = "always"),
+                    table(female_SCM$drug5, useNA = "always"))
+rownames(table_drug) <- paste0("yr", 1:5)
+
+table_alcohol <- rbind(table(female_SCM$alcohol1, useNA = "always"),
+                       table(female_SCM$alcohol2, useNA = "always"),
+                       table(female_SCM$alcohol3, useNA = "always"),
+                       table(female_SCM$alcohol4, useNA = "always"),
+                       table(female_SCM$alcohol5, useNA = "always"))
+rownames(table_alcohol) <- paste0("yr", 1:5)
+@
+
+\begin{table}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & \textbf{Before School Year} & \textbf{School Year 1} & \textbf{School Year 2} & \textbf{School Year}
+\end{table}
+
+a.	 possibly stratified by outcome (if binary)
 
 iii.	Estimators
 1.	Ultimately, point estimates and confidence intervals for each estimator you applied
