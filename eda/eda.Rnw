@@ -206,7 +206,7 @@ female_final <- female_data %>%
   mutate(suicide4 = (SUICIDE4 != 1)) %>% 
   mutate(suicide5 = (SUICIDE5 != 1)) %>%
   # add outcome Y
-  mutate(Y = as.numeric(suicide1) + as.numeric(suicide2) + as.numeric(suicide3) +
+  mutate(Y = as.numeric(suicide2) + as.numeric(suicide3) +
            as.numeric(suicide4) + as.numeric(suicide5)) %>%
   # race W_1: 
   mutate(race = RACE) %>%
@@ -275,8 +275,9 @@ SCM_nodes <- c("victim1", "victim2", "victim3", "victim4", "suicide1",
                "sxorient", "consent", "forced", "forced_att", "sex_bef14", 
                "relation1", "relation2", "relation3", "relation4", "relation5", 
                "religion1", "religion2", "religion3", "religion4", "religion5", 
-               "psystress1", "psystress2", "psystress3", "psystress4", 
-               "psystress5", "psywell1", "psywell2", "psywell3", "psywell4", 
+               #"psystress1", "psystress2", "psystress3", "psystress4", 
+               #"psystress5", 
+               "psywell1", "psywell2", "psywell3", "psywell4", 
                "psywell5", "victfrnd1", "victfrnd2", "victfrnd3", "victfrnd4", 
                "victfrnd5", "drug1", "drug2", "drug3", "drug4", "drug5", 
                "alcohol1", "alcohol2", "alcohol3", "alcohol4", "alcohol5")
@@ -453,5 +454,13 @@ vic_0000/vic_000
 vic_000/vic_00
 vic_00/vic_0
 @
+
+<<impute baseline covariates>>=
+# impute based on the raw data, otherwise remove any individuals with missing 
+# value in the first survey
+
+@
+
+
 
 \end{document}
