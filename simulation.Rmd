@@ -196,3 +196,7 @@ data.frame(Estimators = c("TMLE", "IPTW", "G-COMP"), Estimate = c("-0.062524 ", 
 ```
 
 
+# make table of summary stats for each var 
+# dount the total number, number in the treatment and not 
+# get true psi by deterministically setting treatment and no treatment at each time point 
+#  dist. of estimates from bootstrap
