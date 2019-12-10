@@ -1,0 +1,176 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<load-data>>=
+load("../data/female_SCM.RData")
+@
+
+i.	Analysis sample
+1.	# of observations (individuals) meeting inclusion criteria, reasons for exclusion
+2.	Consider a flow diagram
+<<>>=
+psywell1_high <- quantile(as.numeric(female_SCM$psywell1), 0.975, na.rm = T)
+psywell2_high <- quantile(as.numeric(female_SCM$psywell2), 0.975, na.rm = T)
+psywell3_high <- quantile(as.numeric(female_SCM$psywell3), 0.975, na.rm = T)
+psywell4_high <- quantile(as.numeric(female_SCM$psywell4), 0.975, na.rm = T)
+psywell5_high <- quantile(as.numeric(female_SCM$psywell5), 0.975, na.rm = T)
+psywell1_low <- quantile(as.numeric(female_SCM$psywell1), 0.025, na.rm = T)
+psywell2_low <- quantile(as.numeric(female_SCM$psywell2), 0.025, na.rm = T)
+psywell3_low <- quantile(as.numeric(female_SCM$psywell3), 0.025, na.rm = T)
+psywell4_low <- quantile(as.numeric(female_SCM$psywell4), 0.025, na.rm = T)
+psywell5_low <- quantile(as.numeric(female_SCM$psywell5), 0.025, na.rm = T)
+psywell_outlier1 <- which(female_SCM$psywell1 > psywell1_high & female_SCM$psywell2 > psywell2_high & 
+                          female_SCM$psywell3 > psywell3_high & female_SCM$psywell4 > psywell3_high &
+                          female_SCM$psywell5 > psywell5_high)
+psywell_outlier2 <- which(female_SCM$psywell1 < psywell1_low & female_SCM$psywell2 < psywell2_low & 
+                          female_SCM$psywell3 < psywell3_low & female_SCM$psywell4 < psywell3_low &
+                          female_SCM$psywell5 < psywell5_low)
+
+psystress1_high <- quantile(as.numeric(female_SCM$psystress1), 0.975, na.rm = T)
+psystress2_high <- quantile(as.numeric(female_SCM$psystress2), 0.975, na.rm = T)
+psystress3_high <- quantile(as.numeric(female_SCM$psystress3), 0.975, na.rm = T)
+psystress4_high <- quantile(as.numeric(female_SCM$psystress4), 0.975, na.rm = T)
+psystress5_high <- quantile(as.numeric(female_SCM$psystress5), 0.975, na.rm = T)
+psystress1_low <- quantile(as.numeric(female_SCM$psystress1), 0.025, na.rm = T)
+psystress2_low <- quantile(as.numeric(female_SCM$psystress2), 0.025, na.rm = T)
+psystress3_low <- quantile(as.numeric(female_SCM$psystress3), 0.025, na.rm = T)
+psystress4_low <- quantile(as.numeric(female_SCM$psystress4), 0.025, na.rm = T)
+psystress5_low <- quantile(as.numeric(female_SCM$psystress5), 0.025, na.rm = T)
+psystress_outlier1 <- which(female_SCM$psystress1 > psystress1_high & female_SCM$psystress2 > psystress2_high & 
+                female_SCM$psystress3 > psystress3_high & female_SCM$psystress4 > psystress3_high &
+                female_SCM$psystress5 > psystress5_high)
+psystress_outlier2 <- which(female_SCM$psystress1 <psystress1_low & female_SCM$psystress2 < psystress2_low & 
+                female_SCM$psystress3 < psystress3_low & female_SCM$psystress4 < psystress3_low &
+                female_SCM$psystress5 < psystress5_low)
+
+outliers <- c(psywell_outlier1, psywell_outlier2, psystress_outlier1, psystress_outlier2)
+female_outliers <- female_SCM[-outliers, ]
+@
+ii.	Descriptive
+1.	number of individuals following each regime of interest
+
+<<>>=
+vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
+                  (female_SCM$victim3 == 1) & (female_SCM$victim4 == 1), 
+                na.rm = T)
+vic_0000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
+                  (female_SCM$victim3 == 0) & (female_SCM$victim4 == 0), 
+                na.rm = T)
+
+vic_1111_o <- sum((female_outliers$victim1 == 1) & (female_outliers$victim2 == 1) & 
+                  (female_outliers$victim3 == 1) & (female_outliers$victim4 == 1), 
+                na.rm = T)
+vic_0000_o <- sum((female_outliers$victim1 == 0) & (female_outliers$victim2 == 0) & 
+                  (female_outliers$victim3 == 0) & (female_outliers$victim4 == 0), 
+                na.rm = T)
+@
+
+2.	basic descriptive stats for outcome (eg if binary, how many events)
+
+<<>>=
+table_suicidal <- rbind(table(female_SCM$suicide1, useNA = "always"),
+                        table(female_SCM$suicide2, useNA = "always"),
+                        table(female_SCM$suicide3, useNA = "always"),
+                        table(female_SCM$suicide4, useNA = "always"),
+                        table(female_SCM$suicide5, useNA = "always"))
+rownames(table_suicidal) <- paste0("yr", 1:5)
+table(female_SCM$Y, useNA = "always")
+
+table(female_outliers$Y, useNA = "always")
+
+@
+
+3.	“Table 1” descriptive (univariate) sample characteristics
+
+<<>>=
+table(female_SCM$race, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$sxorient, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$consent, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$forced, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$forced_att, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+table(female_SCM$sex_bef14, female_SCM$cohort, useNA = "always")[, c(1, 2)]
+@
+
+
+\end{table}
+
+<<>>=
+table_relation <- rbind(table(female_SCM$relation1, useNA = "always"),
+                        table(female_SCM$relation2, useNA = "always"),
+                        table(female_SCM$relation3, useNA = "always"),
+                        table(female_SCM$relation4, useNA = "always"),
+                        table(female_SCM$relation5, useNA = "always"))
+rownames(table_relation) <- paste0("yr", 1:5)
+
+table_religion <- rbind(table(female_SCM$religion1, useNA = "always"),
+                        table(female_SCM$religion2, useNA = "always"),
+                        table(female_SCM$religion3, useNA = "always"),
+                        table(female_SCM$religion4, useNA = "always"),
+                        table(female_SCM$religion5, useNA = "always"))
+rownames(table_religion) <- paste0("yr", 1:5)
+
+table_victfrnd <- rbind(table(female_SCM$victfrnd1, useNA = "always"),
+                        table(female_SCM$victfrnd2, useNA = "always"),
+                        table(female_SCM$victfrnd3, useNA = "always"),
+                        table(female_SCM$victfrnd4, useNA = "always"),
+                        table(female_SCM$victfrnd5, useNA = "always"))
+rownames(table_victfrnd) <- paste0("yr", 1:5)
+
+table_drug <- rbind(table(female_SCM$drug1, useNA = "always"),
+                    table(female_SCM$drug2, useNA = "always"),
+                    table(female_SCM$drug3, useNA = "always"),
+                    table(female_SCM$drug4, useNA = "always"),
+                    table(female_SCM$drug5, useNA = "always"))
+rownames(table_drug) <- paste0("yr", 1:5)
+
+table_alcohol <- rbind(table(female_SCM$alcohol1, useNA = "always"),
+                       table(female_SCM$alcohol2, useNA = "always"),
+                       table(female_SCM$alcohol3, useNA = "always"),
+                       table(female_SCM$alcohol4, useNA = "always"),
+                       table(female_SCM$alcohol5, useNA = "always"))
+rownames(table_alcohol) <- paste0("yr", 1:5)
+
+table_suicide <- rbind(table(female_SCM$suicide1, useNA = "always"),
+                       table(female_SCM$suicide2, useNA = "always"),
+                       table(female_SCM$suicide3, useNA = "always"),
+                       table(female_SCM$suicide4, useNA = "always"),
+                       table(female_SCM$suicide5, useNA = "always"))
+rownames(table_suicide) <- paste0("yr", 1:5)
+
+table_victim <- rbind(table(female_SCM$victim1, useNA = "always"),
+                       table(female_SCM$victim2, useNA = "always"),
+                       table(female_SCM$victim3, useNA = "always"),
+                       table(female_SCM$victim4, useNA = "always"))
+rownames(table_victim) <- paste0("yr", 1:4)
+@
+
+
+<<>>=
+vic_1111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
+                  (female_SCM$victim3 == 1) & (female_SCM$victim4 == 1), na.rm = T)
+vic_111 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1) & 
+                 (female_SCM$victim3 == 1), na.rm = T)
+vic_11 <- sum((female_SCM$victim1 == 1) & (female_SCM$victim2 == 1), na.rm = T)
+vic_1 <- sum(female_SCM$victim1 == 1, na.rm = T)
+vic_1111 / nrow(female_SCM)
+vic_1111/vic_111
+vic_111/vic_11
+vic_11/vic_1
+
+vic_0000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
+                  (female_SCM$victim3 == 0) & (female_SCM$victim4 == 0), na.rm = T)
+vic_000 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0) & 
+                  (female_SCM$victim3 == 0), na.rm = T)
+vic_00 <- sum((female_SCM$victim1 == 0) & (female_SCM$victim2 == 0), na.rm = T)
+vic_0 <- sum(female_SCM$victim1 == 0, na.rm = T)
+vic_0000 / nrow(female_SCM)
+vic_0000/vic_000
+vic_000/vic_00
+vic_00/vic_0
+@
+
+
+
+\end{document}

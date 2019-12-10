@@ -1,0 +1,85 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<load-data>>=
+load("../data/female_SCM_censoring.RData") # female_SCM
+# rm(list=setdiff(ls(), "female_SCM"))
+
+library(tidyverse)
+@
+
+Impute variables at time point $t = 1$, i.e., remove individuals with any missing 
+value in their first survey. 
+
+<<>>=
+# remove any individuals with missing value in the first survey
+female_SCM <- female_SCM %>%
+  drop_na(race, sxorient, consent, forced, forced_att, sex_bef14, relation1, 
+          drug1, alcohol1, victim1)
+@
+
+Impute outcome $Y$ and covariate $L_1$.
+
+<<>>=
+data <- female_SCM
+apply(data, 2, function(t){sum(is.na(t))})
+
+# time point 2
+for(t in c(16:18, 20:22, 24)){
+  T_index <- which(is.na(data[, t]) & data[, t-9] == T)
+  T_prob <- sum(data[, t] == T & data[, t-9] == T, na.rm = T)/sum(data[, t-9] == T, na.rm = T)
+  data[T_index, t] <- rbinom(length(T_index), 1, T_prob)
+  
+  F_index <- which(is.na(data[, t]) & data[, t-9] == F)
+  F_prob <- sum(data[, t] == T & data[, t-9] == F, na.rm = T)/sum(data[, t-9] == F, na.rm = T)
+  data[F_index, t] <- rbinom(length(F_index), 1, F_prob)
+}
+
+# time point 3
+for(t in c(25:27, 29:31, 33)){
+  T_index <- which(is.na(data[, t]) & (data[, t-9] == T | data[, t-18] == T))
+  T_prob <- sum(data[, t] == T & (data[, t-9] == T | data[, t-18] == T), 
+                na.rm = T) / sum(data[, t-9] == T | data[, t-18] == T, na.rm = T)
+  data[T_index, t] <- rbinom(length(T_index), 1, T_prob)
+  
+  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data[, t-18] == F)
+  F_prob <- sum(data[, t] == T & data[, t-9] == F & data[, t-18] == F, 
+                na.rm = T)/sum(data[, t-9] == F & data[, t-18] == F, na.rm = T)
+  data[F_index, t] <- rbinom(length(F_index), 1, F_prob)
+}
+
+# time point 4
+for(t in c(34:36, 38:40, 42)){
+  T_index <- which(is.na(data[, t]) & (data[, t-9] == T | data[, t-18] == T | data[, t-27] == T))
+  T_prob <- sum(data[, t] == T & (data[, t-9] == T | data[, t-18] == T | data[, t-27] == T), 
+                na.rm = T) / sum(data[, t-9] == T | data[, t-18] == T | data[, t-27] == T, na.rm = T)
+  data[T_index, t] <- rbinom(length(T_index), 1, T_prob)
+  
+  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data[, t-18] == F & data[, t-27] == F)
+  F_prob <- sum(data[, t] == T & data[, t-9] == F & data[, t-18] == F & data[, t-27] == F, 
+                na.rm = T)/sum(data[, t-9] == F & data[, t-18] == F & data[, t-27] == F, na.rm = T)
+  data[F_index, t] <- rbinom(length(F_index), 1, F_prob)
+}
+
+# continuous variable
+col_index <- grep("^psywell", colnames(data))
+for(i in col_index){
+  data[which(is.na(data[, i])), i] <- colMeans(data, na.rm = T)[i]
+}
+
+# Y
+data <- data %>%
+  mutate(Y = as.numeric(suicide1) + as.numeric(suicide2) + as.numeric(suicide3) +
+           as.numeric(suicide4))
+@
+
+<<save-data>>=
+female_SCM <- data
+save(female_SCM, file='../data/female_SCM_imputed.RData')
+@
+
+
+
+\end{document}
