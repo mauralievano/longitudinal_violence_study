@@ -46,6 +46,7 @@ results_tmle <- ltmle(
 )
 
 save(results_tmle, file='results_tmle.Rdata')
+load('results_tmle.Rdata')
 
 summary(results_tmle, 'tmle')
 summary(results_tmle, 'iptw')
@@ -66,5 +67,25 @@ results_gcomp <- ltmle(
 )
 
 save(results_gcomp, file='results_gcomp.Rdata')
+load('results_gcomp.Rdata')
 
 summary(results_gcomp)
+
+## unadjusted
+
+## < 1 min to run
+results_unadj <- ltmle(
+  female_SCM %>% select(
+    C1, victim1, C2, victim2, C3, victim3, C4, victim4, Y
+  ),
+  Anodes = c('victim1', 'victim2', 'victim3','victim4'),
+  Cnodes = c('C1', 'C2', 'C3', 'C4'),
+  Ynodes = 'Y',
+  abar = list(
+    c(1, 1, 1, 1),
+    c(0, 0, 0, 0)
+  ),
+  SL.library = SL.library
+)
+
+summary(results_unadj)
