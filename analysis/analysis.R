@@ -25,8 +25,13 @@ Lnodes <- c(
   'victfrnd4', 'drug4', 'alcohol4'
 )
 
+## requires packages 'e1071' and 'ranger', 
+SL.library <- c('SL.mean', 'SL.glm', 'SL.glmnet', 'SL.ranger')
+attr(SL.library, 'return.fit') <- TRUE
+
 ltmle <- function(...) suppressMessages(ltmle::ltmle(...))
 
+## ~10-15 min to run
 results_tmle <- ltmle(
   data = female_SCM,
   Anodes = c('victim1', 'victim2', 'victim3','victim4'),
@@ -36,12 +41,16 @@ results_tmle <- ltmle(
   abar = list(
     c(1, 1, 1, 1),
     c(0, 0, 0, 0)
-  )
+  ),
+  SL.library = SL.library
 )
+
+save(results_tmle, file='results_tmle.Rdata')
 
 summary(results_tmle, 'tmle')
 summary(results_tmle, 'iptw')
 
+## ~10-15 min to run
 results_gcomp <- ltmle(
   data = female_SCM,
   Anodes = c('victim1', 'victim2', 'victim3','victim4'),
@@ -52,7 +61,10 @@ results_gcomp <- ltmle(
     c(1, 1, 1, 1),
     c(0, 0, 0, 0)
   ),
+  SL.library = SL.library,
   gcomp = TRUE
 )
+
+save(results_gcomp, file='results_gcomp.Rdata')
 
 summary(results_gcomp)
