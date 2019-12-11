@@ -23,10 +23,15 @@ library(tidyverse)
 library(data.table)
 library(ltmle)
 library(SuperLearner)
+library(kableExtra)
+```
+
+```{r}
+quiet_ltmle <- function(...){suppressMessages(ltmle::ltmle(...))}
 ```
 
 ```{r, loadData}
-load("data/female_SCM.RData")
+load("data/female_SCM_imputed.RData")
 ```
 
 ```{r, exploreData}
@@ -38,135 +43,315 @@ summary(female_SCM)
 Explanation of variable names: 
 1. `"CODENUM"`: Identification number 
 2. `"cohort"`: Indicates the cohort to which the individual belongs (90 or 91)
-3. `"victim"`: Binary indicating whether individual was victimized (1) or not (0) at time t 
-4. `"suicide"`: Binary indicating suicide attempt or ideation was made (1) or not (0) at time t 
-5. `"relation"`: Binary indicating whether in a relationship (1) or not (0) status at time t 
-6. `"religious`: Binary indicating individual is religious (1) or not (0) at time t 
-7. `"psystress"`: Continuous scale showing negative psychological stress (higher number indicates more stress)
-8. `"psywell"`: Continuous scale showing psychological well being (higher number indicates well being)
-9. `"victfrnd"`: Binary indicating whether (1) or not (0) the victim knew other women who were sexually victimized 
-10. `"drug"`: Binary indicating drug use (1) or not (0) at time t 
-11. `"alcohol"`: Binary indicating alcohol (yes for 1 and no for 0) use at time t 
-12. `"race", "sxorient", "consent", "forced", "forced_att", "sex_bef14"`: All baseline covariates
+3. : Binary indicating whether individual was victimized (1) or not (0) at time t 
+4. : Binary indicating suicide attempt or ideation was made (1) or not (0) at time t 
+5. : Binary indicating whether in a relationship (1) or not (0) status at time t 
+6. : Binary indicating individual is religious (1) or not (0) at time t 
+9. : Binary indicating whether (1) or not (0) the victim knew other women who were sexually victimized 
+10. : Binary indicating drug use (1) or not (0) at time t 
+11. : Binary indicating alcohol (yes for 1 and no for 0) use at time t 
+7. : Continuous scale showing psychological well being (higher number indicates well being)
 
-```{r, toBinary}
+12. 
+
+```{r, cleaning}
+# This steps converts logical variables to binary
 cols <-  which(sapply(female_SCM, is.logical))
 setDT(female_SCM)
 for(j in cols){
- set(female_SCM, i=NULL, j=j, value= as.numeric(female_SCM[[j]]))
+set(female_SCM, i=NULL, j=j, value= as.numeric(female_SCM[[j]]))
 }
 
-save(female_SCM, file = "data/female_SCM.RData")
-```
+# We have haven_labelled class for the 'psy' variables which don't work with ggplot
+# So fix those below 
 
-```{r}
+for (i in 1:4) {
+  female_SCM[[paste0("psywell",i)]] <- as.numeric(female_SCM[[paste0("psywell",i)]])
+}
+
+female_SCM$consent <- as.numeric(female_SCM$consent)
+female_SCM$race <- as.numeric(female_SCM$race)
+
+# check
 colSums(is.na(female_SCM))
 ```
 
 Simulation: See also “For Your Project” questions from R lab 1. 
 i.	Describe your simulation: We have the the following types of variables in our data and they were simulated as follows: 
+*All baseline covariates:* `"race", "sxorient", "consent", "forced", "forced_att", "sex_bef14"`
+
 *Binary variables in the data:* All of the below variables were generated as binomial random variables with `p` as the mean of this variable in the observed data 
-A(t) : Victimization
-L1 (t) : Suicidal tendency or ideation observed (binary)
-L2 (t) : Relationship status 
-L3 (t) : Religious status
-L4 (t) : Whether the victim knew other women who were victimized 
-L5 (t) : Drug use 
-L6 (t) : Alcohol use 
+A(t) : Victimization `"victim"`
+L1 (t) : Suicidal tendency or ideation observed `"suicide"`
+L2 (t) : Relationship status `"relation"`
+L3 (t) : Religious status `"religious`
+L4 (t) : Whether the victim knew other women who were victimized `"victfrnd"`
+L5 (t) : Drug use `"drug"`
+L6 (t) : Alcohol use `"alcohol"`
+C(t) : Censored at the time t 
 
 *Continuous variables in the data:* The following two variables show somewhat normal distribution and thefore were generated as normal distribution with mean and variance as that of the original data. 
-L7 (t) : Psychological stress on a scale (higher value indicates higher stress)
-L8 (t) : Psychological well being on a scale (higher value indicates well being)
-```{r}
-
-#Example for psywell1
-p1 <- ggplot(female_SCM) + 
-  geom_histogram(aes(x = psywell1), color = "black", alpha = "0.5") +
-  labs(title = "psywell: psychological well being score") +
-  theme(plot.title = element_text(size =10, hjust = 0.5))
-
-#Example of psystress1
-p2 <- ggplot(female_SCM) + 
-  geom_histogram(aes(x = psystress4), color = "black", alpha = 0.5) +
-  labs (title = "psystress: psychological stress score") +
-  theme(plot.title = element_text(size =10, hjust = 0.5))
-
-
-ggarrange(p1,p2) %>%
-  annotate_figure(top = "Distribution of continuous variables")
-
-```
+L7 (t) : Psychological well being on a scale (higher value indicates well being) `"psywell"`
 
 *Discrete variable:*
 Y : Outcome, which is accrued number of times suicidal tendency or ideation was recorded at the end of the study (Sum of L1(t) at each t = 1,2,3,4)
 
-ii.	Provide preliminary results of applying your estimator(s) to your simulated data: 
+# EDA (before simulation)
+```{r someEDA}
+summary(female_SCM)
 
-Generate data 
-```{r}
-#Use n = 1580 to match the observed data
 
-n = 1580
-t = 4
+#Example for psywell
+psy_plots <- list()
+for (i in 1:4){
+  psy_plots[[i]] <- local({
+        i <- i
+  ggplot(female_SCM) + 
+    geom_histogram(aes(x = get(paste0("psywell",i))), color = "black", alpha = "0.5") +
+    labs(x = sprintf("psywell%s",i)) +
+    theme(plot.title = element_text(size =14, face = "bold", hjust = 0.5)) 
+  })
+}
 
-generate_data <- function(n,t) {
+ggarrange(psy_plots[[1]], psy_plots[[2]], psy_plots[[3]], psy_plots[[4]]) %>%
+  annotate_figure(top = "Psychological Well Being Score Distribution Across Year 1-4")
+
+female_SCM_copy <- female_SCM[, 7:43]
+colnames(female_SCM_copy) <- c("L1_1", "L2_1", "L3_1", "L7_1", "L4_1", "L5_1", "L6_1","C1", 
+                               "A1", "L1_2", "L2_2", "L3_2", "L7_2", "L4_2", "L5_2", "L6_2","C2", 
+                               "A2", "L1_3", "L2_3", "L3_3", "L7_3", "L4_3", "L5_3", "L6_3","C3", 
+                               "A3", "L1_4", "L2_4", "L3_4", "L7_4", "L4_4", "L5_4", "L6_4","C4",
+                               "A4", "Y")
+
+# Fit models fo suicide L1 at each time point 
+L1_2_lm <- glm(L1_2~L1_1 + L2_1+L3_1+L7_1+L4_1+L5_1+L6_1+C1+A1, data = female_SCM_copy)
+L1_3_lm <- glm(L1_3~L1_1+L2_1+L3_1+L7_1+L4_1+L5_1+L6_1+C1+A1+L1_2+L2_2+L3_2+L7_2+L4_2+L5_2+L6_2+C2+A2, data = female_SCM_copy)
+L1_4_lm <- glm(L1_4~L1_1+L2_1+L3_1+L7_1+L4_1+L5_1+L6_1+C1+A1+L1_2+L2_2+L3_2+L7_2+L4_2+L5_2+L6_2+C2+A2+L1_3+L2_3+L3_3+L7_3+L4_3+L5_3+L6_3+C3+A3, data = female_SCM_copy)
+```
+
+# Simulation: 
+Generate data: 
+```{r generate}
+generate_data_intervene <- function(n) {
   
- df <- data.frame( # Intervention node:
-                   A = rbinom(n, 1, prob = 0.4), 
-                   # Suicidal tendency 
-                   L1 =  rbinom(n, 1, prob = 0.07),
-                   # Relationship status, binary with mean 0.25
-                   L2 =  rbinom(n, 1, prob = 0.25),
-                   # Religious status, binary with mean 0.25
-                   L3 = rbinom(n, 1, prob = 0.71),
-                   # Victfriend, binary with mean 0.59
-                   L4 =  rbinom(n, 1, prob = 0.59),
-                   # Drug use 
-                   L5 = rbinom(n, 1, prob = 0.25),
-                   # Alcohol use
-                   L6 = rbinom(n, 1, prob = 0.75),
-                   # Dating 
-                   L7 = rbinom(n, 1, prob = 0.80),
-                   # Psychological stress
-                   L8 = rnorm(n, 2.15, 0.7),
-                   # Psychological stress
-                   L9 = rnorm(n, 3.24, 0.8))
- colnames(df) <- paste(colnames(df), c(t,t,t,t,t,t,t,t,t), sep = "_")
+ df <- data.frame( # Intervention node: prob based on the mean of victim in that year
+                   A1 = rbinom(n, 1, prob = 0.6), 
+                   A2 = rbinom(n, 1, prob = 0.4),
+                   A3 = rbinom(n, 1, prob = 0.3),
+                   A4 = rbinom(n, 1, prob = 0.3),
+                   
+                   # Suicidal tendency: prob based on the mean of suicide in that year
+                   L1_1 = rbinom(n, 1, prob = 0.1),
+                   #L1_2 = rbinom(n, 1, prob = 0.1),
+                   #L1_3 = rbinom(n, 1, prob = 0.1),
+                   #L1_4 = rbinom(n, 1, prob = 0.06),
+                  
+                   
+                   # Relationship status: prob based on the mean of relation in that year
+                   L2_1 = rbinom(n, 1, prob = 0.25),
+                   L2_2 = rbinom(n, 1, prob = 0.5),
+                   L2_3 = rbinom(n, 1, prob = 0.5),
+                   L2_4 = rbinom(n, 1, prob = 0.5),
+                   
+                   # Religious status: prob based on the mean of religion in that year
+                   L3_1 = rbinom(n, 1, prob = 0.7),
+                   L3_2 = rbinom(n, 1, prob = 0.7),
+                   L3_3 = rbinom(n, 1, prob = 0.7),
+                   L3_4 = rbinom(n, 1, prob = 0.7),
+                   
+                   # Victfriend: prob based on the mean of victfriend in that year
+                   L4_1 =  rbinom(n, 1, prob = 0.6),
+                   L4_2 = rbinom(n, 1, prob = 0.5),
+                   L4_3 = rbinom(n, 1, prob = 0.4),
+                   L4_4 = rbinom(n, 1, prob = 0.2),
+                   
+                   # Drug use: prob based on mean of drug in that year
+                   L5_1 = rbinom(n, 1, prob = 0.2),
+                   L5_2 = rbinom(n, 1, prob = 0.2),
+                   L5_3 = rbinom(n, 1, prob = 0.2),
+                   L5_4 = rbinom(n, 1, prob = 0.2),
+                   
+                   # Alcohol use: based on the mean of alcohol in that year 
+                   L6_1 = rbinom(n, 1, prob = 0.75),
+                   L6_2 = rbinom(n, 1, prob = 0.75),
+                   L6_3 = rbinom(n, 1, prob = 0.75),
+                   L6_4 = rbinom(n, 1, prob = 0.75),
+                   
+                   # Psychological well being: based on mean of psywell in that year 
+                   L7_1 = rnorm(n, 3.2, 0.8),
+                   L7_2 = rnorm(n, 3.2, 0.8),
+                   L7_3 = rnorm(n, 3.5, 0.8),
+                   L7_4 = rnorm(n, 3.6, 0.6),
+                   
+                   # Add in censoring nodes 
+                   C1 = rbinom(n, 1, prob = 0.001),
+                   C2 = rbinom(n, 1, prob = 0.3),
+                   C3 = rbinom(n, 1, prob = 0.4), 
+                   C4 = rbinom(n, 1, prob = 0.6)
+ )
  
  return(df) 
  }
+
+df <- generate_data_intervene(n = 2000)
+df <- df %>%
+  mutate(L1_2 = ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0),
+           L1_3 = ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0), 
+           L1_4 = ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0))
+         
+df <- df %>%
+  mutate(Y = L1_1 + L1_2 + L1_3 + L1_4)
+
+
+
+# Intervene on cbar == 0 and abar == 1 
+df_1111 <- df[,!colnames(df) %in% c("Y")]
+
+df_1111$A1 <- 1
+df_1111$A2 <- 1
+df_1111$A3 <- 1
+df_1111$A4 <- 1
+df_1111$C1 <- 0
+df_1111$C2 <- 0
+df_1111$C3 <- 0
+df_1111$C4 <- 0
+df_1111 <- df_1111 %>%
+  mutate(L1_2 = ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0),
+           L1_3 = ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0), 
+           L1_4 = ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0))
  
- df <- bind_cols(lapply(1:4, generate_data, n = 1580))
+df_1111 <- df_1111 %>%
+  mutate(Y = L1_1 + L1_2 + L1_3 + L1_4)
  
-# Add outcome 
- df <- df %>%
-    mutate(Y = L1_1 + L1_2 + L1_3 + L1_4) 
-  
+table(df_1111$Y) 
+
+# Intervene on cbar == 0 and cbar == 0 
+df_0000 <- df[,!colnames(df) %in% c("Y")]
+
+df_0000$A1 <- 0
+df_0000$A2 <- 0
+df_0000$A3 <- 0
+df_0000$A4 <- 0
+df_0000$C1 <- 0
+df_0000$C2 <- 0
+df_0000$C3 <- 0
+df_0000$C4 <- 0
+df_0000 <- df_0000 %>%
+  mutate(L1_2 = ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0),
+           L1_3 = ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0), 
+           L1_4 = ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0))
+ 
+df_0000 <- df_0000 %>%
+  mutate(Y = L1_1 + L1_2 + L1_3 + L1_4)
+
+table(df_0000$Y) 
+
+Psi.F <- mean(df_1111$Y) - mean(df_0000$Y)
+Psi.F
+
 ```
 
 Implement tmle: 
-```{r}
-sl_lib <- c("SL.glm", "SL.mean")
+```{r ltmle}
 
-# Time ordered intervention nodes 
-Anodes <- c("A_1","A_2","A_3","A_4")
+# Binarytocensoring
+  
+  generate_data <- function(n) {
+  
+ df <- data.frame( # Intervention node: prob based on the mean of victim in that year
+                   A1 = rbinom(n, 1, prob = 0.6), 
+                   A2 = rbinom(n, 1, prob = 0.4),
+                   A3 = rbinom(n, 1, prob = 0.3),
+                   A4 = rbinom(n, 1, prob = 0.3),
+                   
+                   # Suicidal tendency: prob based on the mean of suicide in that year
+                   L1_1 = rbinom(n, 1, prob = 0.1),
+                   L1_2 = rbinom(n, 1, prob = 0.1),
+                   L1_3 = rbinom(n, 1, prob = 0.1),
+                   L1_4 = rbinom(n, 1, prob = 0.06),
+                  
+                   
+                   # Relationship status: prob based on the mean of relation in that year
+                   L2_1 = rbinom(n, 1, prob = 0.25),
+                   L2_2 = rbinom(n, 1, prob = 0.5),
+                   L2_3 = rbinom(n, 1, prob = 0.5),
+                   L2_4 = rbinom(n, 1, prob = 0.5),
+                   
+                   # Religious status: prob based on the mean of religion in that year
+                   L3_1 = rbinom(n, 1, prob = 0.7),
+                   L3_2 = rbinom(n, 1, prob = 0.7),
+                   L3_3 = rbinom(n, 1, prob = 0.7),
+                   L3_4 = rbinom(n, 1, prob = 0.7),
+                   
+                   # Victfriend: prob based on the mean of victfriend in that year
+                   L4_1 =  rbinom(n, 1, prob = 0.6),
+                   L4_2 = rbinom(n, 1, prob = 0.5),
+                   L4_3 = rbinom(n, 1, prob = 0.4),
+                   L4_4 = rbinom(n, 1, prob = 0.2),
+                   
+                   # Drug use: prob based on mean of drug in that year
+                   L5_1 = rbinom(n, 1, prob = 0.2),
+                   L5_2 = rbinom(n, 1, prob = 0.2),
+                   L5_3 = rbinom(n, 1, prob = 0.2),
+                   L5_4 = rbinom(n, 1, prob = 0.2),
+                   
+                   # Alcohol use: based on the mean of alcohol in that year 
+                   L6_1 = rbinom(n, 1, prob = 0.75),
+                   L6_2 = rbinom(n, 1, prob = 0.75),
+                   L6_3 = rbinom(n, 1, prob = 0.75),
+                   L6_4 = rbinom(n, 1, prob = 0.75),
+                   
+                   # Psychological well being: based on mean of psywell in that year 
+                   L7_1 = rnorm(n, 3.2, 0.8),
+                   L7_2 = rnorm(n, 3.2, 0.8),
+                   L7_3 = rnorm(n, 3.5, 0.8),
+                   L7_4 = rnorm(n, 3.6, 0.6),
+                   
+                   # Add in censoring nodes 
+                   C1 = rbinom(n, 1, prob = 0.001),
+                   C2 = rbinom(n, 1, prob = 0.3),
+                   C3 = rbinom(n, 1, prob = 0.4), 
+                   C4 = rbinom(n, 1, prob = 0.6)
+ )
+ 
+ return(df) 
+ }
 
-# Time ordered L nodes 
-Lnodes <-  c("L1_1","L2_1","L3_1","L4_1", "L5_1", "L6_1", "L7_1", "L8_1", "L9_1",
-            "L1_2","L2_2","L3_2","L4_2", "L5_2", "L6_2", "L7_2", "L8_2", "L9_2",
-            "L1_3","L2_3","L3_3","L4_3", "L5_3", "L6_3", "L7_3", "L8_3", "L9_3",
-            "L1_4","L2_4","L3_4","L4_4", "L5_4", "L6_4", "L7_4", "L8_4", "L9_4")
+  df <- generate_data(n = 2000)
+  
+  df <- df %>%
+    mutate(Y = L1_1 + L1_2 + L1_3 + L1_4,
+    C1 = BinaryToCensoring(is.censored = C1),
+    C2 = BinaryToCensoring(is.censored = C2),
+    C3 = BinaryToCensoring(is.censored = C3),
+    C4 = BinaryToCensoring(is.censored = C4))
 
-# Outcome Y
-Ynodes <- "Y"
+# Order for ltmle
+df <- df %>%
+  select(L1_1, L2_1, L3_1, L4_1, L5_1, L6_1, L7_1, C1, A1, 
+         L1_2, L2_2, L3_2, L4_2, L5_2, L6_2, L7_2, C2, A2,    
+         L1_3, L2_3, L3_3, L4_3, L5_3, L6_3, L7_3, C3, A3,
+         L1_4, L2_4, L3_4, L4_4, L5_4, L6_4, L7_4, C4, A4, 
+         Y)
+
+sl_lib <- c("SL.glm", "SL.mean") # SL.step takes 60 minutes
+
+Anodes <- c("A1","A2","A3","A4")
+
+Lnodes <-  c("L1_1","L2_1","L3_1","L4_1", "L5_1", "L6_1", "L7_1",
+             "L1_2","L2_2","L3_2","L4_2", "L5_2", "L6_2", "L7_2",
+            "L1_3","L2_3","L3_3","L4_3", "L5_3", "L6_3", "L7_3",
+            "L1_4","L2_4","L3_4","L4_4", "L5_4", "L6_4", "L7_4")
+
+Cnodes <- c("C1", "C2", "C3", "C4")
 
 # Estimate without G-comp 
 est <- ltmle(data = df,
              Anodes = Anodes, 
+             Cnodes = Cnodes,
              Lnodes = Lnodes, 
-             Ynodes = Ynodes,
+             Ynodes = "Y",
              abar = list(c(1, 1, 1, 1), c(0, 0, 0, 0)),
-             variance.method = "ic",
              gcomp = F,
              SL.library = sl_lib)
 
@@ -175,9 +360,9 @@ est <- ltmle(data = df,
 est1 <- ltmle(data = df,
               Anodes = Anodes,
               Lnodes = Lnodes, 
-              Ynodes = Ynodes,
+              Cnodes = Cnodes,
+              Ynodes = "Y",
               abar = list(c(1, 1, 1, 1), c(0, 0, 0, 0)),
-              variance.method = "ic",
               gcomp = T,
               SL.library = sl_lib)
 
@@ -188,15 +373,126 @@ est1 <- ltmle(data = df,
 summary(est, "tmle")
 summary(est, "iptw")
 summary(est1, "gcomp")
+
+data.frame("Estimator" = c("G-Comp", "IPTW", "TMLE"),
+           "Estimate" = c("-0.012483", "-0.16065", "-0.019438"),
+           "95% CI" = c("(-0.1216, 0.096635)", "(-0.37914, 0.057846)", "(-0.12825, 0.089371) "))
 ```
 
-Preliminary results with 95% CI:
+Stability:
 ```{r}
-data.frame(Estimators = c("TMLE", "IPTW", "G-COMP"), Estimate = c("-0.062524 ", "-0.085855 ","-0.027341" ), CI = c("[-0.1547, 0.029656]", "[-0.22868, 0.05697]", "[-0.119, 0.064316]"))
+Psi.F <- 0
+performance_sim = function() {
+  
+  n <- 1500
+  
+  ObsData <-  generate_data(n)
+  
+   ObsData <- ObsData %>%
+    mutate(Y = L1_1 + L1_2 + L1_3 + L1_4,
+    C1 = BinaryToCensoring(is.censored = C1),
+    C2 = BinaryToCensoring(is.censored = C2),
+    C3 = BinaryToCensoring(is.censored = C3),
+    C4 = BinaryToCensoring(is.censored = C4))
+   
+  ObsData <- ObsData %>%
+  select(L1_1, L2_1, L3_1, L4_1, L5_1, L6_1, L7_1, C1, A1, 
+         L1_2, L2_2, L3_2, L4_2, L5_2, L6_2, L7_2, C2, A2,    
+         L1_3, L2_3, L3_3, L4_3, L5_3, L6_3, L7_3, C3, A3,
+         L1_4, L2_4, L3_4, L4_4, L5_4, L6_4, L7_4, C4, A4, 
+         Y)
+
+sl_lib <- c("SL.glm", "SL.mean") # SL.step takes 60 minutes
+
+Anodes <- c("A1","A2","A3","A4")
+
+Lnodes <-  c("L1_1","L2_1","L3_1","L4_1", "L5_1", "L6_1", "L7_1",
+             "L1_2","L2_2","L3_2","L4_2", "L5_2", "L6_2", "L7_2",
+            "L1_3","L2_3","L3_3","L4_3", "L5_3", "L6_3", "L7_3",
+            "L1_4","L2_4","L3_4","L4_4", "L5_4", "L6_4", "L7_4")
+
+Cnodes <- c("C1", "C2", "C3", "C4")
+   
+  results <- quiet_ltmle(data = ObsData,
+             Anodes = Anodes, 
+             Cnodes = Cnodes,
+             Lnodes = Lnodes, 
+             Ynodes = 'Y',
+             abar = list(c(1, 1, 1, 1), c(0, 0, 0, 0)),
+             gcomp = F,
+             SL.library = sl_lib)
+  
+  results.gcomp <- quiet_ltmle(data = ObsData,
+             Anodes = Anodes, 
+             Cnodes = Cnodes,
+             Lnodes = Lnodes, 
+             Ynodes = 'Y',
+             abar = list(c(1, 1, 1, 1), c(0, 0, 0, 0)),
+             gcomp = T,
+             SL.library = sl_lib)
+  
+  sum.results.tmle = summary(results, "tmle")
+  sum.results.iptw = summary(results, "iptw")
+  sum.results.gcomp = summary(results.gcomp, "gcomp")
+  
+  tmle <- sum.results.tmle$effect.measures$ATE$estimate
+  
+  tmle.cov = sum.results.tmle$effect.measures$ATE$CI[1] < Psi.F &sum.results.tmle$effect.measures$ATE$CI[2] > Psi.F
+  
+  iptw <- sum.results.iptw$effect.measures$ATE$estimate
+  
+  iptw.cov = sum.results.iptw$effect.measures$ATE$CI[1] < Psi.F &sum.results.iptw$effect.measures$ATE$CI[2] > Psi.F
+  
+  gcomp <- sum.results.gcomp$effect.measures$ATE$estimate
+  
+  gcomp.cov = sum.results.gcomp$effect.measures$ATE$CI[1] < Psi.F &sum.results.gcomp$effect.measures$ATE$CI[2] > Psi.F
+  
+  estimates <- c(gcomp = gcomp,
+                 iptw = iptw,
+                 iptw.cov = iptw.cov,
+                 tmle = tmle,
+                 tmle.cov = tmle.cov)
+  
+  return(estimates)}
+
+estimates_sim <- t(replicate(100, performance_sim()))
+estimates_sim <- data.frame(estimates_sim)
+
+save(estimates_sim, file = "analysis/sim_performance.RData")
+
+#estimates_mat = estimates_sim
+#truthvector = Psi.F
+
+#Bias
+bias_gcomp <- round(mean(estimates_sim$gcomp) - Psi.F, 4)
+bias_iptw <- round(mean(estimates_sim$iptw, na.rm=T) - Psi.F, 4)
+bias_tmle <-round(mean(estimates_sim$tmle) - Psi.F, 2)
+
+#variance
+var_gcomp <- round(var(estimates_sim$gcomp), 4)
+var_iptw <- round(var(estimates_sim$iptw, na.rm = T), 4)
+var_tmle <- round(var(estimates_sim$tmle), 4)
+
+#MSE
+mse_gcomp <- round(bias_gcomp^2 + var_gcomp, 4)
+mse_iptw <- round(bias_iptw^2 + var_iptw, 4)
+mse_tmle <- round(bias_tmle^2 + var_tmle, 4)
+
+#Confidence interval
+CI_gcomp <- "-"
+CI_iptw <- round(mean(estimates_sim$iptw.cov, na.rm=T), 4)
+CI_tmle <- round(mean(estimates_sim$tmle.cov), 4)
+
+perf_metrics <- data.frame("Bias" = c(bias_gcomp, bias_iptw, bias_tmle),
+                           "Variance" = c(var_gcomp, var_iptw, var_tmle),
+                           "MSE" = c(mse_gcomp, mse_iptw, mse_tmle),
+                           "Coverage" = c(CI_gcomp, CI_iptw, CI_tmle))
+rownames(perf_metrics) <- c("G-Comp", "IPTW", "TMLE")
+  
+
+write.csv(perf_metrics, file = ("analysis/sim_metrics.csv"))
+write.csv(estimates_sim, file = ("analysis/sim_results.csv"))
+
 ```
 
 
-# make table of summary stats for each var 
-# dount the total number, number in the treatment and not 
-# get true psi by deterministically setting treatment and no treatment at each time point 
-#  dist. of estimates from bootstrap
