@@ -7,11 +7,7 @@
 library(haven)
 library(tidyverse)
 library(miscset)
-library(grid)
-library(gridExtra)
 library(xtable)
-
-source("../src/utility.R")
 @
 
 <<load-data>>=
@@ -21,107 +17,6 @@ female_variable <- colnames(female_data)
 
 length(grep(pattern = "^90-", female_data$CODENUM) )
 length(grep(pattern = "^91-", female_data$CODENUM) )
-
-female_new <- female_data %>%
-  mutate(victim1_bin = (COOCCURA != 1)) %>%
-  mutate(victim2_bin = (COOCCUR2 != 1)) %>%
-  mutate(victim3_bin = (COOCCUR3 != 1)) %>%
-  mutate(victim4_bin = (COOCCUR4 != 1)) %>%
-  mutate(SUICIDE1 = (SUICIDE != 1)) %>%
-  mutate(SUICIDE2 = (SUICIDE2 != 1)) %>%
-  mutate(SUICIDE3 = (SUICIDE3 != 1)) %>%
-  mutate(SUICIDE4 = (SUICIDE4 != 1)) %>% # 1 if suicidal, 0 if not
-  mutate(SUICIDE5 = (SUICIDE5 != 1)) %>%
-  # 1 if engaged or married, 0 if single or divorced
-  mutate(MARSTAT_bin = (MARSTAT == 3 | MARSTAT == 4)) %>%
-  # 1 if has religious belief, o.w. 0
-  mutate(RELIG_bin = (RELIG != 5)) %>%
-  # 1 if depressed, o.w. 0
-  mutate(DEPRESS1_bin = (DEPRESS != 1)) %>%
-  mutate(DEPRESS2_bin = (DEPRESS2 != 1)) %>%
-  mutate(DEPRESS3_bin = (DEPRESS3 != 1)) %>%
-  mutate(DEPRESS4_bin = (DEPRESS4 != 1)) %>%
-  mutate(DEPRESS5_bin = (DEPRESS5 != 1))
-@
-
-<<EDA-suicide, fig = T>>=
-p_suicide1 <- ggplot(female_new, aes(x = SUICIDE1, fill = victim1_bin)) + 
-  geom_bar() + xlab("Year 1")  + scale_nice + theme_bottom
-
-suicide_legend <- Glegend(p_suicide1)
-
-p_suicide2 <- ggplot(female_new, aes(x = SUICIDE2, fill = victim2_bin)) + 
-  geom_bar() + xlab("Year 2") + scale_nice + theme_no_legend
-
-p_suicide3 <- ggplot(female_new, aes(x = SUICIDE3, fill = victim3_bin)) + 
-  geom_bar() + xlab("Year 3") + scale_nice + theme_no_legend
-
-p_suicide4 <- ggplot(female_new, aes(x = SUICIDE4, fill = victim4_bin)) + 
-  geom_bar() + xlab("Year 4") + scale_nice + theme_no_legend
-
-p_outcome <- grid.arrange(arrangeGrob(p_suicide1 + theme(legend.position = "none"), 
-                          p_suicide2, p_suicide3, p_suicide4, nrow = 2, ncol = 2), 
-                            suicide_legend, nrow = 2, heights = c(10, 1),
-                            top = textGrob("Suicidal Tendency Classified by Victimization", 
-                                           gp = gpar(fontsize = 18, font = 3)))
-ggsave(file = "../figure/dist-outcome.png", p_outcome)
-@
-
-<<eda-suicide，echo = F, eval = F>>=
-female_new %>%
-  filter(SUICIDE1 == 1) %>%
-  filter(SUICIDE2 == 1) %>%
-  filter(SUICIDE3 == 1) %>%
-  filter(SUICIDE4 == 1) %>%
-  summarise(n())
-# 8
-female_new %>%
-  filter(SUICIDE1 == 0) %>%
-  filter(SUICIDE2 == 0) %>%
-  filter(SUICIDE3 == 0) %>%
-  filter(SUICIDE4 == 0) %>%
-  summarise(n())
-# 754
-@
-
-<<eda-confounders, fig = T>>=
-p_depress1 <- ggplot(female_new, aes(x = DEPRESS1_bin, fill = victim1_bin)) + 
-  geom_bar() + xlab("Year 1")  + scale_nice + theme_bottom
-
-depress_legend <- Glegend(p_depress1)
-
-p_depress2 <- ggplot(female_new, aes(x = DEPRESS2_bin, fill = victim2_bin)) + 
-  geom_bar() + xlab("Year 2") + scale_nice + theme_no_legend
-
-p_depress3 <- ggplot(female_new, aes(x = DEPRESS3_bin, fill = victim3_bin)) + 
-  geom_bar() + xlab("Year 3") + scale_nice + theme_no_legend
-
-p_depress4 <- ggplot(female_new, aes(x = DEPRESS4_bin, fill = victim4_bin)) + 
-  geom_bar() + xlab("Year 4") + scale_nice + theme_no_legend
-
-p_depress <- grid.arrange(arrangeGrob(p_depress1 + 
-                                           theme(legend.position = "none"), 
-                p_depress2, p_depress3, p_depress4, nrow = 2, ncol = 2), 
-                            depress_legend, nrow = 2, heights = c(10, 1),
-                            top = textGrob("Depression Level Classified by Victimization", 
-                                           gp = gpar(fontsize = 18, font = 3)))
-ggsave(file = "../figure/dist-depression.png", p_depress)
-
-p_confounder1 <- ggplot(female_new, aes(x = MARSTAT_bin, fill = victim1_bin)) + 
-  geom_bar() + xlab("Relationship Status")  + scale_relation + theme_bottom
-
-confounder_legend <- Glegend(p_confounder1)
-
-p_confounder2 <- ggplot(female_new, aes(x = RELIG_bin, fill = victim2_bin)) + 
-  geom_bar() + xlab("Religion Preference") + scale_religion + theme_no_legend
-
-p_confounder <- grid.arrange(arrangeGrob(p_confounder1 + 
-                                           theme(legend.position = "none"), 
-                p_confounder2, nrow = 1, ncol = 2), 
-                            confounder_legend, nrow = 2, heights = c(4, 1),
-                            top = textGrob("Confounders Classified by Victimization", 
-                                           gp = gpar(fontsize = 18, font = 3)))
-ggsave(file = "../figure/dist-confounder.png", p_confounder)
 @
 
 <<data-cleanup>>=

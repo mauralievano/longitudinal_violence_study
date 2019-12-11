@@ -73,6 +73,12 @@ for(i in col_index){
 data <- data %>%
   mutate(Y = as.numeric(suicide1) + as.numeric(suicide2) + as.numeric(suicide3) +
            as.numeric(suicide4))
+
+# restore censoring
+# data[which(data$C1 == 1), c(15:22, 24:31, 33:40, 42:43)] <- NA
+data[which(data$C2 == 1), c(24:31, 33:40, 42:43)] <- NA
+data[which(data$C3 == 1), c(33:40, 42:43)] <- NA
+data[which(data$C4 == 1), c(42:43)] <- NA
 @
 
 <<save-data>>=
