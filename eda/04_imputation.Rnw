@@ -32,21 +32,19 @@ for(t in c(16:18, 20:22, 24)){
   T_prob <- sum(data[, t] == T & data[, t-9] == T, na.rm = T)/sum(data[, t-9] == T, na.rm = T)
   data[T_index, t] <- rbinom(length(T_index), 1, T_prob)
   
-  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data$C2 == 0)
+  F_index <- which(is.na(data[, t]) & data[, t-9] == F)
   F_prob <- sum(data[, t] == T & data[, t-9] == F, na.rm = T)/sum(data[, t-9] == F, na.rm = T)
   data[F_index, t] <- rbinom(length(F_index), 1, F_prob)
 }
 
 # time point 3
 for(t in c(25:27, 29:31, 33)){
-  T_index <- which(is.na(data[, t]) & (data[, t-9] == T | data[, t-18] == T) & 
-                     data$C3 == 0)
+  T_index <- which(is.na(data[, t]) & (data[, t-9] == T | data[, t-18] == T))
   T_prob <- sum(data[, t] == T & (data[, t-9] == T | data[, t-18] == T), 
                 na.rm = T) / sum(data[, t-9] == T | data[, t-18] == T, na.rm = T)
   data[T_index, t] <- rbinom(length(T_index), 1, T_prob)
   
-  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data[, t-18] == F &
-                     data$C3 == 0)
+  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data[, t-18] == F)
   F_prob <- sum(data[, t] == T & data[, t-9] == F & data[, t-18] == F, 
                 na.rm = T)/sum(data[, t-9] == F & data[, t-18] == F, na.rm = T)
   data[F_index, t] <- rbinom(length(F_index), 1, F_prob)
@@ -54,12 +52,12 @@ for(t in c(25:27, 29:31, 33)){
 
 # time point 4
 for(t in c(34:36, 38:40, 42)){
-  T_index <- which(is.na(data[, t]) & (data[, t-9] == T | data[, t-18] == T | data[, t-27] == T) & data$C4 == 0)
+  T_index <- which(is.na(data[, t]) & (data[, t-9] == T | data[, t-18] == T | data[, t-27] == T))
   T_prob <- sum(data[, t] == T & (data[, t-9] == T | data[, t-18] == T | data[, t-27] == T), 
                 na.rm = T) / sum(data[, t-9] == T | data[, t-18] == T | data[, t-27] == T, na.rm = T)
   data[T_index, t] <- rbinom(length(T_index), 1, T_prob)
   
-  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data[, t-18] == F & data[, t-27] == F  & data$C4 == 0)
+  F_index <- which(is.na(data[, t]) & data[, t-9] == F & data[, t-18] == F & data[, t-27] == F)
   F_prob <- sum(data[, t] == T & data[, t-9] == F & data[, t-18] == F & data[, t-27] == F, 
                 na.rm = T)/sum(data[, t-9] == F & data[, t-18] == F & data[, t-27] == F, na.rm = T)
   data[F_index, t] <- rbinom(length(F_index), 1, F_prob)
@@ -76,10 +74,11 @@ data <- data %>%
   mutate(Y = as.numeric(suicide1) + as.numeric(suicide2) + as.numeric(suicide3) +
            as.numeric(suicide4))
 
-# # restore censoring
-# data[which(data$C2 == 1), c(16:22, 24:31, 33:40, 42:43)] <- NA
-# data[which(data$C3 == 1), c(25:31, 33:40, 42:43)] <- NA
-# data[which(data$C4 == 1), c(34:40, 42:43)] <- NA
+# restore censoring
+# data[which(data$C1 == 1), c(15:22, 24:31, 33:40, 42:43)] <- NA
+data[which(data$C2 == 1), c(24:31, 33:40, 42:43)] <- NA
+data[which(data$C3 == 1), c(33:40, 42:43)] <- NA
+data[which(data$C4 == 1), c(42:43)] <- NA
 @
 
 <<save-data>>=
