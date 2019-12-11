@@ -79,6 +79,10 @@ data <- data %>%
 data[which(data$C2 == 1), c(24:31, 33:40, 42:43)] <- NA
 data[which(data$C3 == 1), c(33:40, 42:43)] <- NA
 data[which(data$C4 == 1), c(42:43)] <- NA
+
+# check and compare 
+apply(data, 2, function(t){sum(is.na(t))})
+apply(female_SCM, 2, function(t){sum(is.na(t))})
 @
 
 <<save-data>>=

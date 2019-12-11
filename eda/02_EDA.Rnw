@@ -58,7 +58,7 @@ p_suicide4 <- ggplot(female_new, aes(x = SUICIDE4, fill = victim4_bin)) +
 p_outcome <- grid.arrange(arrangeGrob(p_suicide1 + theme(legend.position = "none"), 
                           p_suicide2, p_suicide3, p_suicide4, nrow = 2, ncol = 2), 
                             suicide_legend, nrow = 2, heights = c(10, 1),
-                            top = textGrob("Number of Suicidal Events per Year", 
+                            top = textGrob("Indicator of suicide-related event per year", 
                                            gp = gpar(fontsize = 18, font = 3)))
 ggsave(file = "../figure/dist-outcome.png", p_outcome)
 @

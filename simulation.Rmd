@@ -35,7 +35,7 @@ load("data/female_SCM_imputed.RData")
 ```
 
 ```{r, exploreData}
-skim(female_SCM)
+skimr::skim(female_SCM)
 str(female_SCM)
 summary(female_SCM)
 ```
@@ -116,17 +116,29 @@ for (i in 1:4){
 ggarrange(psy_plots[[1]], psy_plots[[2]], psy_plots[[3]], psy_plots[[4]]) %>%
   annotate_figure(top = "Psychological Well Being Score Distribution Across Year 1-4")
 
-female_SCM_copy <- female_SCM[, 7:43]
-colnames(female_SCM_copy) <- c("L1_1", "L2_1", "L3_1", "L7_1", "L4_1", "L5_1", "L6_1","C1", 
-                               "A1", "L1_2", "L2_2", "L3_2", "L7_2", "L4_2", "L5_2", "L6_2","C2", 
-                               "A2", "L1_3", "L2_3", "L3_3", "L7_3", "L4_3", "L5_3", "L6_3","C3", 
-                               "A3", "L1_4", "L2_4", "L3_4", "L7_4", "L4_4", "L5_4", "L6_4","C4",
-                               "A4", "Y")
+female_SCM_copy <- female_SCM
+colnames(female_SCM_copy) <- c("W1", "W2", "W3", "W4", "W5", "W6", "L1_0", 
+                               "L2_0", "L3_0", "L4_0", "L5_0", "L6_0", "L7_0", 
+                               "C1", "A1", "L1_1", "L2_1", "L3_1", "L7_1", 
+                               "L4_1", "L5_1", "L6_1", "C2", "A2", "L1_2", 
+                               "L2_2", "L3_2", "L7_2", "L4_2", "L5_2", "L6_2", 
+                               "C3", "A3", "L1_3", "L2_3", "L3_3", "L7_3", 
+                               "L4_3", "L5_3", "L6_3", "C4", "A4", "Y")
 
 # Fit models fo suicide L1 at each time point 
-L1_2_lm <- glm(L1_2~L1_1 + L2_1+L3_1+L7_1+L4_1+L5_1+L6_1+C1+A1, data = female_SCM_copy)
-L1_3_lm <- glm(L1_3~L1_1+L2_1+L3_1+L7_1+L4_1+L5_1+L6_1+C1+A1+L1_2+L2_2+L3_2+L7_2+L4_2+L5_2+L6_2+C2+A2, data = female_SCM_copy)
-L1_4_lm <- glm(L1_4~L1_1+L2_1+L3_1+L7_1+L4_1+L5_1+L6_1+C1+A1+L1_2+L2_2+L3_2+L7_2+L4_2+L5_2+L6_2+C2+A2+L1_3+L2_3+L3_3+L7_3+L4_3+L5_3+L6_3+C3+A3, data = female_SCM_copy)
+L1_1_lm <- glm(L1_1 ~ W1 + W2 + W3 + W4 + W5 + W6 + L1_0 + L2_0 + L3_0 + L4_0 + 
+                 L5_0 + L6_0 + L7_0 + A1 + C1, data = female_SCM_copy)
+L1_2_lm <- glm(L1_2 ~ W1 + W2 + W3 + W4 + W5 + W6 + L1_0 + L2_0 + L3_0 + L4_0 + 
+                 L5_0 + L6_0 + L7_0 + A1 + C1 + L1_1 + L2_1 + L3_1 + L4_1 + 
+                 L5_1 + L6_1 + L7_1 + A2 + C2, data = female_SCM_copy)
+L1_3_lm <- glm(L1_3 ~ W1 + W2 + W3 + W4 + W5 + W6 + L1_0 + L2_0 + L3_0 + L4_0 + 
+                 L5_0 + L6_0 + L7_0 + A1 + C1 + L1_1 + L2_1 + L3_1 + L4_1 + 
+                 L5_1 + L6_1 + L7_1 + A2 + C2 + L1_2 + L2_2 + L3_2 + L4_2 + 
+                 L5_2 + L6_2 + L7_2 + C3 + A3, data = female_SCM_copy)
+L1_4_lm <- glm(L1_3 ~ W1 + W2 + W3 + W4 + W5 + W6 + L1_0 + L2_0 + L3_0 + L4_0 + 
+                 L5_0 + L6_0 + L7_0 + A1 + C1 + L1_1 + L2_1 + L3_1 + L4_1 + 
+                 L5_1 + L6_1 + L7_1 + A2 + C2 + L1_2 + L2_2 + L3_2 + L4_2 + 
+                 L5_2 + L6_2 + L7_2 + C3 + A3 + C4 + A4, data = female_SCM_copy)
 ```
 
 # Simulation: 
@@ -134,54 +146,62 @@ Generate data:
 ```{r generate}
 generate_data_intervene <- function(n) {
   
- df <- data.frame( # Intervention node: prob based on the mean of victim in that year
+ df <- data.frame( # W:
+                   W1 = rbinom(n, 1, prob = 0.75) + 1,
+                   W2 = rbinom(n, 1, prob = 0.03),
+                   W3 = rbinom(n, 1, prob = 0.306) + 1,
+                   W4 = rbinom(n, 1, prob = 0.47),
+                   W5 = rbinom(n, 1, prob = 0.207),
+                   W6 = rbinom(n, 1, prob = 0.412),
+   
+   # Intervention node: prob based on the mean of victim in that year
                    A1 = rbinom(n, 1, prob = 0.6), 
                    A2 = rbinom(n, 1, prob = 0.4),
                    A3 = rbinom(n, 1, prob = 0.3),
                    A4 = rbinom(n, 1, prob = 0.3),
                    
                    # Suicidal tendency: prob based on the mean of suicide in that year
-                   L1_1 = rbinom(n, 1, prob = 0.1),
+                   L1_0 = rbinom(n, 1, prob = 0.1),
                    #L1_2 = rbinom(n, 1, prob = 0.1),
                    #L1_3 = rbinom(n, 1, prob = 0.1),
                    #L1_4 = rbinom(n, 1, prob = 0.06),
                   
                    
                    # Relationship status: prob based on the mean of relation in that year
-                   L2_1 = rbinom(n, 1, prob = 0.25),
+                   L2_0 = rbinom(n, 1, prob = 0.25),
+                   L2_1 = rbinom(n, 1, prob = 0.5),
                    L2_2 = rbinom(n, 1, prob = 0.5),
                    L2_3 = rbinom(n, 1, prob = 0.5),
-                   L2_4 = rbinom(n, 1, prob = 0.5),
                    
                    # Religious status: prob based on the mean of religion in that year
+                   L3_0 = rbinom(n, 1, prob = 0.7),
                    L3_1 = rbinom(n, 1, prob = 0.7),
                    L3_2 = rbinom(n, 1, prob = 0.7),
                    L3_3 = rbinom(n, 1, prob = 0.7),
-                   L3_4 = rbinom(n, 1, prob = 0.7),
                    
                    # Victfriend: prob based on the mean of victfriend in that year
-                   L4_1 =  rbinom(n, 1, prob = 0.6),
-                   L4_2 = rbinom(n, 1, prob = 0.5),
-                   L4_3 = rbinom(n, 1, prob = 0.4),
-                   L4_4 = rbinom(n, 1, prob = 0.2),
+                   L4_0 =  rbinom(n, 1, prob = 0.6),
+                   L4_1 = rbinom(n, 1, prob = 0.5),
+                   L4_2 = rbinom(n, 1, prob = 0.4),
+                   L4_3 =  rbinom(n, 1, prob = 0.2),
                    
                    # Drug use: prob based on mean of drug in that year
+                   L5_0 = rbinom(n, 1, prob = 0.2),
                    L5_1 = rbinom(n, 1, prob = 0.2),
                    L5_2 = rbinom(n, 1, prob = 0.2),
                    L5_3 = rbinom(n, 1, prob = 0.2),
-                   L5_4 = rbinom(n, 1, prob = 0.2),
                    
                    # Alcohol use: based on the mean of alcohol in that year 
+                   L6_0 = rbinom(n, 1, prob = 0.75),
                    L6_1 = rbinom(n, 1, prob = 0.75),
                    L6_2 = rbinom(n, 1, prob = 0.75),
                    L6_3 = rbinom(n, 1, prob = 0.75),
-                   L6_4 = rbinom(n, 1, prob = 0.75),
                    
                    # Psychological well being: based on mean of psywell in that year 
+                   L7_0 = rnorm(n, 3.2, 0.8),
                    L7_1 = rnorm(n, 3.2, 0.8),
-                   L7_2 = rnorm(n, 3.2, 0.8),
-                   L7_3 = rnorm(n, 3.5, 0.8),
-                   L7_4 = rnorm(n, 3.6, 0.6),
+                   L7_2 = rnorm(n, 3.5, 0.8),
+                   L7_3 = rnorm(n, 3.6, 0.6),
                    
                    # Add in censoring nodes 
                    C1 = rbinom(n, 1, prob = 0.001),
@@ -194,10 +214,13 @@ generate_data_intervene <- function(n) {
  }
 
 df <- generate_data_intervene(n = 2000)
-df <- df %>%
-  mutate(L1_2 = ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0),
-           L1_3 = ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0), 
-           L1_4 = ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0))
+
+df$L1_1 <- ifelse(predict(L1_1_lm, newdata = df) > 0.5, 1, 0)
+df$L1_2 <- ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0)
+df$L1_3 <- ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0)
+df$L1_4 <- ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0)
+
+
          
 df <- df %>%
   mutate(Y = L1_1 + L1_2 + L1_3 + L1_4)
@@ -215,10 +238,11 @@ df_1111$C1 <- 0
 df_1111$C2 <- 0
 df_1111$C3 <- 0
 df_1111$C4 <- 0
-df_1111 <- df_1111 %>%
-  mutate(L1_2 = ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0),
-           L1_3 = ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0), 
-           L1_4 = ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0))
+
+df_1111$L1_1 <- ifelse(predict(L1_1_lm, newdata = df_1111) > 0.5, 1, 0)
+df_1111$L1_2 <- ifelse(predict(L1_2_lm, newdata = df_1111) > 0.5, 1, 0)
+df_1111$L1_3 <- ifelse(predict(L1_3_lm, newdata = df_1111) > 0.5, 1, 0)
+df_1111$L1_4 <- ifelse(predict(L1_4_lm, newdata = df_1111) > 0.5, 1, 0)
  
 df_1111 <- df_1111 %>%
   mutate(Y = L1_1 + L1_2 + L1_3 + L1_4)
@@ -236,10 +260,11 @@ df_0000$C1 <- 0
 df_0000$C2 <- 0
 df_0000$C3 <- 0
 df_0000$C4 <- 0
-df_0000 <- df_0000 %>%
-  mutate(L1_2 = ifelse(predict(L1_2_lm, newdata = df) > 0.5, 1, 0),
-           L1_3 = ifelse(predict(L1_3_lm, newdata = df) > 0.5, 1, 0), 
-           L1_4 = ifelse(predict(L1_4_lm, newdata = df) > 0.5, 1, 0))
+df_0000$L1_1 <- ifelse(predict(L1_1_lm, newdata = df_0000) > 0.5, 1, 0)
+df_0000$L1_2 <- ifelse(predict(L1_2_lm, newdata = df_0000) > 0.5, 1, 0)
+df_0000$L1_3 <- ifelse(predict(L1_3_lm, newdata = df_0000) > 0.5, 1, 0)
+df_0000$L1_4 <- ifelse(predict(L1_4_lm, newdata = df_0000) > 0.5, 1, 0)
+
  
 df_0000 <- df_0000 %>%
   mutate(Y = L1_1 + L1_2 + L1_3 + L1_4)
@@ -258,54 +283,63 @@ Implement tmle:
   
   generate_data <- function(n) {
   
- df <- data.frame( # Intervention node: prob based on the mean of victim in that year
+ df <- data.frame( # W:
+                   W1 = rbinom(n, 1, prob = 0.75) + 1,
+                   W2 = rbinom(n, 1, prob = 0.03),
+                   W3 = rbinom(n, 1, prob = 0.306) + 1,
+                   W4 = rbinom(n, 1, prob = 0.47),
+                   W5 = rbinom(n, 1, prob = 0.207),
+                   W6 = rbinom(n, 1, prob = 0.412),
+   
+   # Intervention node: prob based on the mean of victim in that year
                    A1 = rbinom(n, 1, prob = 0.6), 
                    A2 = rbinom(n, 1, prob = 0.4),
                    A3 = rbinom(n, 1, prob = 0.3),
                    A4 = rbinom(n, 1, prob = 0.3),
                    
                    # Suicidal tendency: prob based on the mean of suicide in that year
+                   L1_0 = rbinom(n, 1, prob = 0.1),
                    L1_1 = rbinom(n, 1, prob = 0.1),
                    L1_2 = rbinom(n, 1, prob = 0.1),
-                   L1_3 = rbinom(n, 1, prob = 0.1),
-                   L1_4 = rbinom(n, 1, prob = 0.06),
+                   L1_3 = rbinom(n, 1, prob = 0.06),
+                   L1_4 = rbinom(n, 1, prob = 0.058),
                   
                    
-                   # Relationship status: prob based on the mean of relation in that year
-                   L2_1 = rbinom(n, 1, prob = 0.25),
+                  # Relationship status: prob based on the mean of relation in that year
+                   L2_0 = rbinom(n, 1, prob = 0.25),
+                   L2_1 = rbinom(n, 1, prob = 0.5),
                    L2_2 = rbinom(n, 1, prob = 0.5),
                    L2_3 = rbinom(n, 1, prob = 0.5),
-                   L2_4 = rbinom(n, 1, prob = 0.5),
                    
                    # Religious status: prob based on the mean of religion in that year
+                   L3_0 = rbinom(n, 1, prob = 0.7),
                    L3_1 = rbinom(n, 1, prob = 0.7),
                    L3_2 = rbinom(n, 1, prob = 0.7),
                    L3_3 = rbinom(n, 1, prob = 0.7),
-                   L3_4 = rbinom(n, 1, prob = 0.7),
                    
                    # Victfriend: prob based on the mean of victfriend in that year
-                   L4_1 =  rbinom(n, 1, prob = 0.6),
-                   L4_2 = rbinom(n, 1, prob = 0.5),
-                   L4_3 = rbinom(n, 1, prob = 0.4),
-                   L4_4 = rbinom(n, 1, prob = 0.2),
+                   L4_0 =  rbinom(n, 1, prob = 0.6),
+                   L4_1 = rbinom(n, 1, prob = 0.5),
+                   L4_2 = rbinom(n, 1, prob = 0.4),
+                   L4_3 =  rbinom(n, 1, prob = 0.2),
                    
                    # Drug use: prob based on mean of drug in that year
+                   L5_0 = rbinom(n, 1, prob = 0.2),
                    L5_1 = rbinom(n, 1, prob = 0.2),
                    L5_2 = rbinom(n, 1, prob = 0.2),
                    L5_3 = rbinom(n, 1, prob = 0.2),
-                   L5_4 = rbinom(n, 1, prob = 0.2),
                    
                    # Alcohol use: based on the mean of alcohol in that year 
+                   L6_0 = rbinom(n, 1, prob = 0.75),
                    L6_1 = rbinom(n, 1, prob = 0.75),
                    L6_2 = rbinom(n, 1, prob = 0.75),
                    L6_3 = rbinom(n, 1, prob = 0.75),
-                   L6_4 = rbinom(n, 1, prob = 0.75),
                    
                    # Psychological well being: based on mean of psywell in that year 
+                   L7_0 = rnorm(n, 3.2, 0.8),
                    L7_1 = rnorm(n, 3.2, 0.8),
-                   L7_2 = rnorm(n, 3.2, 0.8),
-                   L7_3 = rnorm(n, 3.5, 0.8),
-                   L7_4 = rnorm(n, 3.6, 0.6),
+                   L7_2 = rnorm(n, 3.5, 0.8),
+                   L7_3 = rnorm(n, 3.6, 0.6),
                    
                    # Add in censoring nodes 
                    C1 = rbinom(n, 1, prob = 0.001),
@@ -328,20 +362,20 @@ Implement tmle:
 
 # Order for ltmle
 df <- df %>%
-  select(L1_1, L2_1, L3_1, L4_1, L5_1, L6_1, L7_1, C1, A1, 
+  select(W1, W2, W3, W4, W5, W6, L1_0, L2_0, L3_0, L4_0, L5_0, L6_0, L7_0,
+         L1_1, L2_1, L3_1, L4_1, L5_1, L6_1, L7_1, C1, A1, 
          L1_2, L2_2, L3_2, L4_2, L5_2, L6_2, L7_2, C2, A2,    
          L1_3, L2_3, L3_3, L4_3, L5_3, L6_3, L7_3, C3, A3,
-         L1_4, L2_4, L3_4, L4_4, L5_4, L6_4, L7_4, C4, A4, 
-         Y)
+         C4, A4, Y)
+
 
 sl_lib <- c("SL.glm", "SL.mean") # SL.step takes 60 minutes
 
 Anodes <- c("A1","A2","A3","A4")
 
-Lnodes <-  c("L1_1","L2_1","L3_1","L4_1", "L5_1", "L6_1", "L7_1",
-             "L1_2","L2_2","L3_2","L4_2", "L5_2", "L6_2", "L7_2",
-            "L1_3","L2_3","L3_3","L4_3", "L5_3", "L6_3", "L7_3",
-            "L1_4","L2_4","L3_4","L4_4", "L5_4", "L6_4", "L7_4")
+Lnodes <-  c("L1_1", "L2_1", "L3_1", "L4_1", "L5_1", "L6_1", "L7_1", "L1_2", 
+            "L2_2", "L3_2", "L4_2", "L5_2", "L6_2", "L7_2", 
+            "L1_3", "L2_3", "L3_3", "L4_3", "L5_3", "L6_3", "L7_3")
 
 Cnodes <- c("C1", "C2", "C3", "C4")
 
@@ -375,16 +409,16 @@ summary(est, "iptw")
 summary(est1, "gcomp")
 
 data.frame("Estimator" = c("G-Comp", "IPTW", "TMLE"),
-           "Estimate" = c("-0.012483", "-0.16065", "-0.019438"),
-           "95% CI" = c("(-0.1216, 0.096635)", "(-0.37914, 0.057846)", "(-0.12825, 0.089371) "))
+           "Estimate" = c("0.0057167", "-0.42626", "-0.30835"),
+           "95% CI" = c("(-0.060642, 0.072075)", "(-0.61963, -0.23289) ", "(-0.36678, -0.24992)"))
 ```
 
 Stability:
 ```{r}
-Psi.F <- 0
+Psi.F <- 0.054
 performance_sim = function() {
   
-  n <- 1500
+  n <- 2000
   
   ObsData <-  generate_data(n)
   
@@ -396,20 +430,19 @@ performance_sim = function() {
     C4 = BinaryToCensoring(is.censored = C4))
    
   ObsData <- ObsData %>%
-  select(L1_1, L2_1, L3_1, L4_1, L5_1, L6_1, L7_1, C1, A1, 
+  select(W1, W2, W3, W4, W5, W6, L1_0, L2_0, L3_0, L4_0, L5_0, L6_0, L7_0,
+         L1_1, L2_1, L3_1, L4_1, L5_1, L6_1, L7_1, C1, A1, 
          L1_2, L2_2, L3_2, L4_2, L5_2, L6_2, L7_2, C2, A2,    
          L1_3, L2_3, L3_3, L4_3, L5_3, L6_3, L7_3, C3, A3,
-         L1_4, L2_4, L3_4, L4_4, L5_4, L6_4, L7_4, C4, A4, 
-         Y)
+         C4, A4, Y)
 
 sl_lib <- c("SL.glm", "SL.mean") # SL.step takes 60 minutes
 
 Anodes <- c("A1","A2","A3","A4")
 
-Lnodes <-  c("L1_1","L2_1","L3_1","L4_1", "L5_1", "L6_1", "L7_1",
-             "L1_2","L2_2","L3_2","L4_2", "L5_2", "L6_2", "L7_2",
-            "L1_3","L2_3","L3_3","L4_3", "L5_3", "L6_3", "L7_3",
-            "L1_4","L2_4","L3_4","L4_4", "L5_4", "L6_4", "L7_4")
+Lnodes <-  c("L1_1", "L2_1", "L3_1", "L4_1", "L5_1", "L6_1", "L7_1", "L1_2", 
+            "L2_2", "L3_2", "L4_2", "L5_2", "L6_2", "L7_2", 
+            "L1_3", "L2_3", "L3_3", "L4_3", "L5_3", "L6_3", "L7_3")
 
 Cnodes <- c("C1", "C2", "C3", "C4")
    
